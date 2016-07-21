@@ -1,0 +1,62 @@
+File
+	<- S* Value S*
+
+S <- [ \t\n\r]
+
+Expression
+	<- Value
+
+Value
+	<- String
+	/ Number
+	/ Object
+	/ Array
+	/ Null
+	/ True
+	/ False
+	/ ObjectId
+
+Object
+	<- '{' (Member (',' Member )* )? '}'
+
+Member
+	<- String ':' Value
+
+Key
+	<- String
+
+ObjectId 
+        <- 'ObjectId' '("' ID '")'
+
+ID
+        <- [0-9a-z]+
+
+Array
+	<- '[' (Value (',' Value )* )? ']'
+
+String
+	<- '"' ('\\"' / '\\\\' / !'"' .)* '"' S*
+
+True
+        <- 'true' S*
+
+False
+        <- 'false' S*
+
+Null
+        <- 'null' S*
+
+Number
+        <- '-'? INT (FRAC EXP? / '' ) S*
+
+INT
+	<- '0' / [1-9] DIGIT*
+
+DIGIT
+	<- [0-9]
+
+FRAC
+	<- '.' DIGIT+
+
+EXP
+	<- [Ee] ('-' / '+')? DIGIT+
