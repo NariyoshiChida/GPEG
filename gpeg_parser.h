@@ -61,7 +61,6 @@ namespace gpeg_parser {
     void delete_dfs(Grouping*);
 
 
-    std::map<std::string,Node*> expressions; /* OMG */
     int next_label;
     void writeln(std::string);
     void write(std::string);
@@ -71,15 +70,15 @@ namespace gpeg_parser {
     void dispatch(std::string);
     void encode(Node*,int);
     void encode(Nonterminal*,int);
-    void encode(Slash*,int);
+    void encode(Slash*,int);/**/
     void encode(Alternation*,int);
     void encode(Char*,int);
-    void encode(And*,int);
-    void encode(Not*,int);
+    void encode(And*,int);/**/
+    void encode(Not*,int);/**/
     void encode(Sequence*,int);
-    void encode(Question*,int);
-    void encode(Star*,int);
-    void encode(Plus*,int);
+    void encode(Question*,int);/**/
+    void encode(Star*,int);/**/
+    void encode(Plus*,int);/**/
     void encode(Any*,int);
     void encode(Range*,int);
     void encode(Gpeg_string*,int);

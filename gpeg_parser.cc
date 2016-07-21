@@ -55,8 +55,6 @@ void GPEGParser::reset(std::string tmp) {
 
 const int LABEL_MAX = 200;
 std::map<std::string,int> nt_map; // nonterminal name -> label
-std::map<std::pair<std::string,int>,int> ntp_map;
-std::set<std::pair<std::string,int>> nt_memo;
 
 void GPEGParser::dispatch(std::string vari) {
   write("switch(" + vari + ") {");
@@ -99,7 +97,7 @@ void GPEGParser::write_pop() {
 
 void GPEGParser::write_create() {
   writeln("GSSNode create(int L,GSSNode u,int j) {"), ++indent;
-  writeln("GSSNode v = (GSSNode){L_succ,L_fail,j};");
+  writeln("GSSNode v = (GSSNode){L,j};");
   writeln("if(!created.count(v)) {"), ++indent;
   writeln("created[v] = (int)node_vec.size();");
   writeln("GSS.push_back(vector<GSSNode>());");
@@ -213,12 +211,6 @@ void GPEGParser::encode() {
   --indent, writeln("}");
   
   std::vector<Nonterminal*> nonterminals = grammar->getNonterminals();
-  expressions.clear();
-  nt_memo.clear();
-  ntp_map.clear();
-  for(int i=0;i<(int)nonterminals.size();++i) { /* OMG */
-    expressions[nonterminals[i]->getName()] = nonterminals[i]->getExpression(); /* OMG */
-  } /* OMG */
 
   assert( nonterminals.size() );
   // nonterminals[0] is a start nonterminal
@@ -298,36 +290,11 @@ void GPEGParser::encode(Node *node,int modify_ret) {
 
 void GPEGParser::encode(Nonterminal *cur,int modify_ret) {
   if( cur->getExpression() == nullptr ) { // in a parsing expression ( e.g A <- 'a' [[A]]
-    writeln("/* Nonterminal ("+cur->getName()+","+itos(modify_ret)+") -BEGIN- */");
-    
-    if( modify_ret == OFF ) {
-      int ret_label = next_label++;
-      writeln("cu = create("+itos(ret_label)+",cu,i);");
-      writeln("goto _"+itos(nt_map[cur->getName()])+";");
-
-
-      writeln("_"+itos(ret_label)+":;");
-
-
-    } else if( nt_memo.count(std::pair<std::string,int>(cur->getName(),modify_ret)) ) {
-      writeln("assert(ntp_map.count(pair<std::string,int>(cur->getName(),modify_ret)));");
-      int ret_label = next_label++;
-      writeln("cu = create("+itos(ret_label)+",cu,i);");
-      writeln("goto _"+itos(ntp_map[std::pair<std::string,int>(cur->getName(),modify_ret)])+";");
-      writeln("_"+itos(ret_label)+":;");
-      
-    } else {
-      int nt_label = next_label++;
-      ntp_map[std::pair<std::string,int>(cur->getName(),modify_ret)] = nt_label;
-
-      writeln("_"+itos(nt_label)+":;");
-      encode(expressions[cur->getName()],modify_ret); /* OMG : omega */
-      writeln("pop(cu,i);");
-      writeln("goto _0;");
-    }
-    
-
-    writeln("/* Nonterminal (" + cur->getName() + "," + itos(modify_ret) + ") -FIN- */");
+    writeln("/* Nonterminal ("+cur->getName()+","+itos(modify_ret)+") */");
+    int ret_label = next_label++;
+    writeln("cu = create("+itos(ret_label)+",cu,i);");
+    writeln("goto _"+itos(nt_map[cur->getName()])+";");
+    writeln("_"+itos(ret_label)+":;");
   } else { // definition ( e.g. [[A <- 'a' A]]
     assert( modify_ret == OFF );
     encode(cur->getExpression(),modify_ret);
