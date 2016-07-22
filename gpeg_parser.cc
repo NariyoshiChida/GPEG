@@ -236,10 +236,7 @@ void GPEGParser::encode() {
   writeln("");
 
   writeln("int main() {"), ++indent;
-  writeln("string tmp;");
-  writeln("while(getline(cin,tmp)) {"), ++indent;
-  writeln("I += ( tmp + \"\\n\" );");
-  --indent, writeln("}");
+  writeln("getline(cin,I);");
   writeln("m = (int)I.size();");
   writeln("cout << (compute()?\"success\":\"fail\") << endl;");
   writeln("return 0;");
