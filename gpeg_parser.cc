@@ -97,7 +97,7 @@ void GPEGParser::write_pop() {
 
 void GPEGParser::write_create() {
   writeln("GSSNode create(int L,GSSNode u,int j) {"), ++indent;
-  writeln("GSSNode v = (GSSNode){L,j};");
+  writeln("GSSNode v = (GSSNode){L,j,0};");
   writeln("if(!created.count(v)) {"), ++indent;
   writeln("created[v] = (int)node_vec.size();");
   writeln("GSS.push_back(vector<GSSNode>());");
@@ -141,7 +141,12 @@ void GPEGParser::encode() {
   writeln("");
 
   writeln("struct GSSNode {"), ++indent; 
-  writeln("int L, j;");
+  writeln("/*");
+  writeln(" * L : next label");
+  writeln(" * j : an index of the input I");
+  writeln(" * failure_label : 0 -> default ( go back to outer loop ), otherwise -> special case");
+  writeln("*/");
+  writeln("int L, j, failure_label;");
   writeln("bool operator == (const GSSNode &node) const {"), ++indent;
   writeln("return L == node.L && j == node.j;");
   --indent, writeln("}");
@@ -158,8 +163,8 @@ void GPEGParser::encode() {
   --indent, writeln("};");
   writeln("");
 
-  writeln("const GSSNode u0 = (GSSNode){-1,-1};");
-  writeln("const GSSNode u1 = (GSSNode){0,0};");
+  writeln("const GSSNode u0 = (GSSNode){-1,-1, 0};");
+  writeln("const GSSNode u1 = (GSSNode){0,0, 0};");
   writeln("map<GSSNode,int> created; // map GSSNode to an index of node_vec");
   writeln("vector<GSSNode> node_vec;");
   writeln("vector<vector<GSSNode>> GSS;");
@@ -231,7 +236,10 @@ void GPEGParser::encode() {
   writeln("");
 
   writeln("int main() {"), ++indent;
-  writeln("getline(cin,I);");
+  writeln("string tmp;");
+  writeln("while(getline(cin,tmp)) {"), ++indent;
+  writeln("I += ( tmp + \"\\n\" );");
+  --indent, writeln("}");
   writeln("m = (int)I.size();");
   writeln("cout << (compute()?\"success\":\"fail\") << endl;");
   writeln("return 0;");
@@ -291,10 +299,21 @@ void GPEGParser::encode(Node *node,int modify_ret) {
 void GPEGParser::encode(Nonterminal *cur,int modify_ret) {
   if( cur->getExpression() == nullptr ) { // in a parsing expression ( e.g A <- 'a' [[A]]
     writeln("/* Nonterminal ("+cur->getName()+","+itos(modify_ret)+") */");
-    int ret_label = next_label++;
-    writeln("cu = create("+itos(ret_label)+",cu,i);");
+    int succ_label = next_label++;
+    int failure_label = next_label++;
+    writeln("cu = create("+itos(succ_label)+",cu,i);");
+    writeln("cu.failure_label = " + itos(failure_label) + ";");
     writeln("goto _"+itos(nt_map[cur->getName()])+";");
-    writeln("_"+itos(ret_label)+":;");
+
+    writeln("_"+itos(failure_label)+":; /* failure :: nonterminal " + cur->getName() + " */");
+    writeln("assert((int)GSS[created[cu]].size()==1);");
+    writeln("cu = GSS[created[cu]][0]; /* rollback */");
+    writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+    writeln("goto _0;");
+
+    writeln("_"+itos(succ_label)+":; /* success :: nonterminal " + cur->getName() + " */");
+
+    
   } else { // definition ( e.g. [[A <- 'a' A]]
     assert( modify_ret == OFF );
     encode(cur->getExpression(),modify_ret);
@@ -308,34 +327,54 @@ void GPEGParser::encode(Slash *tmp,int modify_ret) {
   std::deque<Node*> alternates = tmp->getAlternates();
   int succ_label = next_label++;
   int ret_label  = next_label++;
-  int modify_label = next_label++;
+  int fail_label = next_label++;
   int label_stamp = next_label;
   next_label += (int)alternates.size();
 
-  writeln("cu = create("+itos(ret_label)+",cu,i); /* Slash */");
-
+  writeln("/* Slash */");
+  writeln("cu = create("+itos(ret_label)+",cu,i);");
+  
   for(int i=0;i<(int)alternates.size();++i) {
     writeln("_"+itos(label_stamp+i)+":;");
     if( i ) {
+      // rollback が正しく動作しているなら i == cu.j なはず　後で assert でチェック***
       writeln("i = cu.j;");
     }
+
     if( i+1 < (int)alternates.size() ) {
+      int sub_fail_label = next_label++;
+
+      writeln("cu.failure_label = " + itos(sub_fail_label) + ";");
+      
       encode(alternates[i],label_stamp+i+1);
+
+      writeln("/* success */");
       writeln("goto _"+itos(succ_label)+";");
+
+      writeln("_"+itos(sub_fail_label)+":; /* failure */");
+      writeln("goto _"+itos(label_stamp+i+1)+";");
+
     } else {
-      encode(alternates[i],modify_label);
+      int sub_fail_label = next_label++;
+
+      writeln("cu.failure_label = " + itos(sub_fail_label) + ";");
+
+      encode(alternates[i],fail_label);
+
+      writeln("/* success */");
       writeln("goto _"+itos(succ_label)+";");
+
+      writeln("_"+itos(sub_fail_label)+":; /* failure */");
+      writeln("goto _"+itos(fail_label)+";");
+      
     }
   }
 
-  writeln("_"+itos(modify_label)+":;");
-  if( modify_ret != OFF ) {
-    writeln("assert((int)GSS[created[cu]].size()==1);");
-    writeln("cu = GSS[created[cu]][0];");
-    writeln("goto _"+itos(modify_ret)+";");
-  } else {
-    writeln("goto _0;");
-  }
+  writeln("_"+itos(fail_label)+":; /* failure */");
+  writeln("assert((int)GSS[created[cu]].size()==1);");
+  writeln("cu = GSS[created[cu]][0]; /* rollback */");
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
 
   writeln("_"+itos(succ_label)+":;");
   writeln("pop(cu,i);");
@@ -346,7 +385,7 @@ void GPEGParser::encode(Slash *tmp,int modify_ret) {
 void GPEGParser::encode(Alternation *tmp,int modify_ret) {
   std::deque<Node*> alternates = tmp->getAlternates();
   int ret_label = next_label++;
-  int modify_label = next_label++;
+  int fail_label = next_label++;
   int label_stamp = next_label;
   next_label += (int)alternates.size();
   writeln("cu = create("+itos(ret_label)+",cu,i); /* Alternation */");
@@ -356,20 +395,25 @@ void GPEGParser::encode(Alternation *tmp,int modify_ret) {
   writeln("goto _0;");
   for(int i=0;i<(int)alternates.size();++i) {
     writeln("_"+itos(label_stamp+i)+":;");
-    encode(alternates[i],modify_label);
+    
+    int sub_fail_label = next_label++;
+    writeln("cu.failure_label = "+itos(sub_fail_label)+";");
+    
+    encode(alternates[i],fail_label);
+    writeln("/* success */");
     writeln("pop(cu,i);");
     writeln("goto _0;");
+    
+    writeln("_"+ itos(sub_fail_label) +":; /* failure */");
+    writeln("goto _" + itos(fail_label) + ";");
+    
   }
 
-  writeln("_"+itos(modify_label)+":;");
-  if( modify_ret != OFF ) {
-    writeln("assert((int)GSS[created[cu]].size()==1);");
-    writeln("cu = GSS[created[cu]][0];");
-    writeln("goto _"+itos(modify_ret)+";");
-  } else {
-    writeln("goto _0;");
-  }
-
+  writeln("_"+itos(fail_label)+":; /* failure */");
+  writeln("assert((int)GSS[created[cu]].size()==1);");
+  writeln("cu = GSS[created[cu]][0]; /* rollback */");
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
 
   writeln("_"+itos(ret_label)+":;");
 }
@@ -383,51 +427,44 @@ void GPEGParser::encode(Char *tmp,int modify_ret) {
   }
   writeln("i = i + 1;");
   --indent, writeln("} else {"), ++indent;
-  if( modify_ret == OFF ) {
-    writeln("goto _0;");
-  } else {
-    writeln("goto _"+itos(modify_ret)+";");
-  }
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
   --indent, writeln("}"); // else
 }
 
 void GPEGParser::encode(And *cur,int modify_ret) {
   Node *next = cur->get();
-  int predicate_label = next_label++;
+  int fail_label = next_label++;
   int ret_label = next_label++;
   writeln("/* And */");
   writeln("cu = create("+itos(ret_label)+",cu,i);");
-  encode(next,predicate_label);
+  writeln("cu.failure_label = " + itos(fail_label) + ";");
+  encode(next,fail_label);
   writeln("pop(cu,cu.j);");
   writeln("goto _0;");
-
-  writeln("_"+itos(predicate_label)+":;");
-  if( modify_ret == OFF ) {
-    writeln("goto _0;");
-  } else {
-    writeln("assert((int)GSS[created[cu]].size()==1);");
-    writeln("cu = GSS[created[cu]][0];");
-    writeln("goto _"+itos(modify_ret)+";");
-  }
+  writeln("_" + itos(fail_label) + ":; /* failure */");
+  writeln("assert((int)GSS[created[cu]].size()==1);");
+  writeln("cu = GSS[created[cu]][0];");
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
 
   writeln("_"+itos(ret_label)+":;");
 }
 
 void GPEGParser::encode(Not *cur,int modify_ret) {
   Node *next = cur->get();
-  int predicate_label = next_label++;
+  int fail_label = next_label++;
   int ret_label = next_label++;
   writeln("/* Not */");
   writeln("cu = create("+itos(ret_label)+",cu,i);");
-  encode(next,predicate_label);
-  if( modify_ret == OFF ) {
-    writeln("goto _0;");
-  } else {
-    writeln("assert((int)GSS[created[cu]].size()==1);");
-    writeln("cu = GSS[created[cu]][0];");
-    writeln("goto _"+itos(modify_ret)+";");
-  }
-  writeln("_"+itos(predicate_label)+":;");
+  writeln("cu.failure_label = " + itos(fail_label) + ";");
+  encode(next,fail_label);
+  writeln("assert((int)GSS[created[cu]].size()==1);");
+  writeln("cu = GSS[created[cu]][0];");
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
+
+  writeln("_"+itos(fail_label)+":; /* failure ( However, here is Not-predicate ) */");
   writeln("pop(cu,cu.j);");
   writeln("goto _0;");
   writeln("_"+itos(ret_label)+":;");
@@ -443,15 +480,16 @@ void GPEGParser::encode(Sequence *tmp,int modify_ret) {
 
 void GPEGParser::encode(Question *cur,int modify_ret) {
   int ret_label = next_label++;
-  int fail_ret_label = next_label++;
+  int fail_label = next_label++;
   writeln("cu = create("+itos(ret_label)+",cu,i); /* Question */");
+  writeln("cu.failure_label = " + itos(fail_label) + ";");
   Node *next = cur->get();
 
-  encode(next,fail_ret_label);
+  encode(next,fail_label);
   writeln("pop(cu,i);");
   writeln("goto _0;");
-  writeln("_"+itos(fail_ret_label)+":;");
-  writeln("pop(cu,cu.j); /* Question */");
+  writeln("_"+itos(fail_label)+":; /* failure */");
+  writeln("pop(cu,cu.j); /* failure of Question */");
   writeln("goto _0;");
   writeln("_"+itos(ret_label)+":;");
 }
@@ -461,11 +499,13 @@ void GPEGParser::encode(Star *cur,int modify_ret) {
   int loop_label = next_label++;
   int pre_fail_label = next_label++;
   int fail_label = next_label++;
+
   writeln("/* star */");
   writeln("add("+itos(loop_label)+",cu,i);");
   writeln("add("+itos(fail_label)+",cu,i);");
   writeln("goto _0;");
   writeln("_"+itos(loop_label)+":;");
+  writeln("cu.failure_label = " + itos(pre_fail_label) + ";");
   encode(next,pre_fail_label);
   writeln("if( !R.empty() && R.front().L == " + itos(fail_label) + " ) {"), ++indent;
   writeln("R.pop();");
@@ -483,12 +523,29 @@ void GPEGParser::encode(Plus *cur,int modify_ret) {
   int loop_label = next_label++;
   int pre_fail_label = next_label++;
   int fail_label = next_label++;
-  writeln("/* plus ( e+ => ee* ) */");
+  writeln("/* Plus (e+ => ee*) */");
+  
+  int pret_label = next_label++;
+  int pfail_label = next_label++;
+  writeln("cu = create(" + itos(pret_label) + ",cu,i);");
+  writeln("cu.failure_label = " + itos(pfail_label) + ";");
   encode(next,modify_ret);
+  writeln("pop(cu,i);");
+  writeln("goto _0;");
+
+  writeln("_" + itos(pfail_label) + ":;");
+  writeln("assert((int)GSS[created[cu]].size());");
+  writeln("cu = GSS[created[cu]][0];");
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
+
+  writeln("_" + itos(pret_label) + ":;");
+  
   writeln("add("+itos(loop_label)+",cu,i);");
   writeln("add("+itos(fail_label)+",cu,i);");
   writeln("goto _0;");
   writeln("_"+itos(loop_label)+":;");
+  writeln("cu.failure_label = " + itos(pre_fail_label) + ";");
   encode(next,pre_fail_label);
   writeln("if( !R.empty() && R.front().L == " + itos(fail_label) + " ) {"), ++indent;
   writeln("R.pop();");
@@ -505,11 +562,10 @@ void GPEGParser::encode(Any *cur,int modify_ret) {
   writeln("if(i<m&&(isgraph((char)I[i])||(I[i]==' '))) {//any character"), ++indent;
   writeln("i = i + 1;");
   --indent, writeln("} else {"), ++indent;
-  if( modify_ret == OFF ) {
-    writeln("goto _0;");
-  } else {
-    writeln("goto _"+itos(modify_ret)+";");
-  }
+  
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
+  
   --indent, writeln("}");
 }
 
@@ -541,11 +597,10 @@ void GPEGParser::encode(Range *cur,int modify_ret) {
   writeln("if(i<m&&("+condition+")) {"), ++indent;
   writeln("i = i + 1;");
   --indent, writeln("} else {"), ++indent;
-  if( modify_ret == OFF ) {
-    writeln("goto _0;");
-  } else {
-    writeln("goto _"+itos(modify_ret)+";");
-  }
+
+  writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+  writeln("goto _0;");
+
   --indent, writeln("}");
 }
 
@@ -559,11 +614,10 @@ void GPEGParser::encode(Gpeg_string *tmp,int modify_ret) {
     }
     writeln("i = i + 1;");
     --indent, writeln("} else { "), ++indent;
-    if( modify_ret == OFF ) {
-      writeln("goto _0;");
-    } else {
-      writeln("goto _"+itos(modify_ret)+";");
-    }
+
+    writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
+    writeln("goto _0;");
+
     --indent, writeln("}");
   }
 }
