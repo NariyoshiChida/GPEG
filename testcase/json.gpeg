@@ -17,22 +17,22 @@ Value
 	/ ObjectId
 
 Object
-	<- '{' (Member (',' Member )* )? '}'
+	<- '{' S* (Member (',' Member )* )? '}'S*
 
 Member
-	<- String ':' Value
+	<- String ':'S* Value
 
 Key
 	<- String
 
 ObjectId 
-        <- 'ObjectId' '("' ID '")'
+        <- 'ObjectId' '("' ID '")'S*
 
 ID
         <- [0-9a-z]+
 
 Array
-	<- '[' (Value (',' Value )* )? ']'
+	<- '['S* (Value (',' Value )* )? ']'S*
 
 String
 	<- '"' ('\\"' / '\\\\' / !'"' .)* '"' S*

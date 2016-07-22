@@ -224,7 +224,7 @@ void GPEGParser::encode() {
   }
   for(int i=0;i<(int)nonterminals.size();++i) {
     writeln("_"+itos(nt_map[nonterminals[i]->getName()])+":;");
-    encode(nonterminals[i],OFF); 
+    encode(nonterminals[i]); 
   }
   
   for(;next_label<LABEL_MAX;++next_label) {
@@ -246,59 +246,59 @@ void GPEGParser::encode() {
   --indent, writeln("}"); // main
 }
 
-void GPEGParser::encode(Node *node,int modify_ret) {
+void GPEGParser::encode(Node *node) {
   int type = node->type;
   if( type == NONTERMINAL ) {
     Nonterminal* tmp = (Nonterminal*)node->values[NONTERMINAL];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == SLASH ) {
     Slash* tmp = (Slash*)node->values[SLASH];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == ALTERNATION ) {
     Alternation* tmp = (Alternation*)node->values[ALTERNATION];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == CHAR ) {
     Char* tmp = (Char*)node->values[CHAR];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == AND ) {
     And* tmp = (And*)node->values[AND];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == NOT ) {
     Not* tmp = (Not*)node->values[NOT];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == SEQUENCE ) {
     Sequence* tmp = (Sequence*)node->values[SEQUENCE];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == QUESTION ) {
     Question* tmp = (Question*)node->values[QUESTION];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == STAR ) {
     Star* tmp = (Star*)node->values[STAR];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == PLUS ) {
     Plus* tmp = (Plus*)node->values[PLUS];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == ANY ) {
     Any* tmp = (Any*)node->values[ANY];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == RANGE ) {
     Range* tmp = (Range*)node->values[RANGE];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == GPEG_STRING ) {
     Gpeg_string *tmp = (Gpeg_string*)node->values[GPEG_STRING];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else if( type == GROUPING ) {
     Grouping *tmp = (Grouping*)node->values[GROUPING];
-    encode(tmp,modify_ret);
+    encode(tmp);
   } else {
     std::cerr << "what is [[" << type << "]]?" << std::endl;
     assert(false);
   }
 }
 
-void GPEGParser::encode(Nonterminal *cur,int modify_ret) {
+void GPEGParser::encode(Nonterminal *cur){
   if( cur->getExpression() == nullptr ) { // in a parsing expression ( e.g A <- 'a' [[A]]
-    writeln("/* Nonterminal ("+cur->getName()+","+itos(modify_ret)+") */");
+    writeln("/* Nonterminal ("+cur->getName()+") */");
     int succ_label = next_label++;
     int failure_label = next_label++;
     writeln("cu = create("+itos(succ_label)+",cu,i);");
@@ -315,15 +315,14 @@ void GPEGParser::encode(Nonterminal *cur,int modify_ret) {
 
     
   } else { // definition ( e.g. [[A <- 'a' A]]
-    assert( modify_ret == OFF );
-    encode(cur->getExpression(),modify_ret);
+    encode(cur->getExpression());
     writeln("pop(cu,i); /* Definition Success */");
     writeln("goto _0;");
   }
 }
 
 
-void GPEGParser::encode(Slash *tmp,int modify_ret) { 
+void GPEGParser::encode(Slash *tmp) { 
   std::deque<Node*> alternates = tmp->getAlternates();
   int succ_label = next_label++;
   int ret_label  = next_label++;
@@ -346,7 +345,7 @@ void GPEGParser::encode(Slash *tmp,int modify_ret) {
 
       writeln("cu.failure_label = " + itos(sub_fail_label) + ";");
       
-      encode(alternates[i],label_stamp+i+1);
+      encode(alternates[i]);
 
       writeln("/* success */");
       writeln("goto _"+itos(succ_label)+";");
@@ -359,7 +358,7 @@ void GPEGParser::encode(Slash *tmp,int modify_ret) {
 
       writeln("cu.failure_label = " + itos(sub_fail_label) + ";");
 
-      encode(alternates[i],fail_label);
+      encode(alternates[i]);
 
       writeln("/* success */");
       writeln("goto _"+itos(succ_label)+";");
@@ -382,7 +381,7 @@ void GPEGParser::encode(Slash *tmp,int modify_ret) {
   writeln("_"+itos(ret_label)+":;");
 }
 
-void GPEGParser::encode(Alternation *tmp,int modify_ret) {
+void GPEGParser::encode(Alternation *tmp) {
   std::deque<Node*> alternates = tmp->getAlternates();
   int ret_label = next_label++;
   int fail_label = next_label++;
@@ -399,7 +398,7 @@ void GPEGParser::encode(Alternation *tmp,int modify_ret) {
     int sub_fail_label = next_label++;
     writeln("cu.failure_label = "+itos(sub_fail_label)+";");
     
-    encode(alternates[i],fail_label);
+    encode(alternates[i]);
     writeln("/* success */");
     writeln("pop(cu,i);");
     writeln("goto _0;");
@@ -418,7 +417,7 @@ void GPEGParser::encode(Alternation *tmp,int modify_ret) {
   writeln("_"+itos(ret_label)+":;");
 }
 
-void GPEGParser::encode(Char *tmp,int modify_ret) {
+void GPEGParser::encode(Char *tmp) {
   char value = tmp->getValue();
   if( !( value == '\\' ) && ( isgraph(value) || value == ' ' ) ) {
     writeln("if(i<m&&I[i]=='"+std::string(1,value)+"') {"), ++indent;
@@ -432,14 +431,14 @@ void GPEGParser::encode(Char *tmp,int modify_ret) {
   --indent, writeln("}"); // else
 }
 
-void GPEGParser::encode(And *cur,int modify_ret) {
+void GPEGParser::encode(And *cur) {
   Node *next = cur->get();
   int fail_label = next_label++;
   int ret_label = next_label++;
   writeln("/* And */");
   writeln("cu = create("+itos(ret_label)+",cu,i);");
   writeln("cu.failure_label = " + itos(fail_label) + ";");
-  encode(next,fail_label);
+  encode(next);
   writeln("pop(cu,cu.j);");
   writeln("goto _0;");
   writeln("_" + itos(fail_label) + ":; /* failure */");
@@ -451,14 +450,14 @@ void GPEGParser::encode(And *cur,int modify_ret) {
   writeln("_"+itos(ret_label)+":;");
 }
 
-void GPEGParser::encode(Not *cur,int modify_ret) {
+void GPEGParser::encode(Not *cur) {
   Node *next = cur->get();
   int fail_label = next_label++;
   int ret_label = next_label++;
   writeln("/* Not */");
   writeln("cu = create("+itos(ret_label)+",cu,i);");
   writeln("cu.failure_label = " + itos(fail_label) + ";");
-  encode(next,fail_label);
+  encode(next);
   writeln("assert((int)GSS[created[cu]].size()==1);");
   writeln("cu = GSS[created[cu]][0];");
   writeln("R.push((Descriptor){cu.failure_label,cu,cu.j});");
@@ -470,22 +469,22 @@ void GPEGParser::encode(Not *cur,int modify_ret) {
   writeln("_"+itos(ret_label)+":;");
 }
 
-void GPEGParser::encode(Sequence *tmp,int modify_ret) {
+void GPEGParser::encode(Sequence *tmp) {
   std::deque<Node*> sequence = tmp->getSequence();
   assert( sequence.size() );
   for(int i=0;i<(int)sequence.size();++i) {
-    encode(sequence[i],modify_ret);
+    encode(sequence[i]);
   }
 }
 
-void GPEGParser::encode(Question *cur,int modify_ret) {
+void GPEGParser::encode(Question *cur) {
   int ret_label = next_label++;
   int fail_label = next_label++;
   writeln("cu = create("+itos(ret_label)+",cu,i); /* Question */");
   writeln("cu.failure_label = " + itos(fail_label) + ";");
   Node *next = cur->get();
 
-  encode(next,fail_label);
+  encode(next);
   writeln("pop(cu,i);");
   writeln("goto _0;");
   writeln("_"+itos(fail_label)+":; /* failure */");
@@ -494,7 +493,7 @@ void GPEGParser::encode(Question *cur,int modify_ret) {
   writeln("_"+itos(ret_label)+":;");
 }
 
-void GPEGParser::encode(Star *cur,int modify_ret) {
+void GPEGParser::encode(Star *cur) {
   Node *next = cur->get();
   int loop_label = next_label++;
   int pre_fail_label = next_label++;
@@ -506,7 +505,7 @@ void GPEGParser::encode(Star *cur,int modify_ret) {
   writeln("goto _0;");
   writeln("_"+itos(loop_label)+":;");
   writeln("cu.failure_label = " + itos(pre_fail_label) + ";");
-  encode(next,pre_fail_label);
+  encode(next);
   writeln("if( !R.empty() && R.front().L == " + itos(fail_label) + " ) {"), ++indent;
   writeln("R.pop();");
   --indent, writeln("}");
@@ -518,7 +517,7 @@ void GPEGParser::encode(Star *cur,int modify_ret) {
   writeln("_"+itos(fail_label)+":;");
 }
 
-void GPEGParser::encode(Plus *cur,int modify_ret) {
+void GPEGParser::encode(Plus *cur) {
   Node *next = cur->get();
   int loop_label = next_label++;
   int pre_fail_label = next_label++;
@@ -529,7 +528,7 @@ void GPEGParser::encode(Plus *cur,int modify_ret) {
   int pfail_label = next_label++;
   writeln("cu = create(" + itos(pret_label) + ",cu,i);");
   writeln("cu.failure_label = " + itos(pfail_label) + ";");
-  encode(next,modify_ret);
+  encode(next);
   writeln("pop(cu,i);");
   writeln("goto _0;");
 
@@ -546,7 +545,7 @@ void GPEGParser::encode(Plus *cur,int modify_ret) {
   writeln("goto _0;");
   writeln("_"+itos(loop_label)+":;");
   writeln("cu.failure_label = " + itos(pre_fail_label) + ";");
-  encode(next,pre_fail_label);
+  encode(next);
   writeln("if( !R.empty() && R.front().L == " + itos(fail_label) + " ) {"), ++indent;
   writeln("R.pop();");
   --indent, writeln("}");
@@ -558,7 +557,7 @@ void GPEGParser::encode(Plus *cur,int modify_ret) {
   writeln("_"+itos(fail_label)+":;");
 }
 
-void GPEGParser::encode(Any *cur,int modify_ret) {
+void GPEGParser::encode(Any *cur) {
   writeln("if(i<m&&(isgraph((char)I[i])||(I[i]==' '))) {//any character"), ++indent;
   writeln("i = i + 1;");
   --indent, writeln("} else {"), ++indent;
@@ -569,7 +568,7 @@ void GPEGParser::encode(Any *cur,int modify_ret) {
   --indent, writeln("}");
 }
 
-void GPEGParser::encode(Range *cur,int modify_ret) {
+void GPEGParser::encode(Range *cur) {
   std::string cs = cur->get();
   std::string condition = "";
   for(int i=0;i<(int)cs.size();++i) {
@@ -604,7 +603,7 @@ void GPEGParser::encode(Range *cur,int modify_ret) {
   --indent, writeln("}");
 }
 
-void GPEGParser::encode(Gpeg_string *tmp,int modify_ret) {
+void GPEGParser::encode(Gpeg_string *tmp) {
   std::string str = tmp->get();
   for(int i=0;i<(int)str.size();++i) {
     if( !( str[i] == '\\' ) && ( isgraph(str[i]) || str[i] ==' ' ) ) {
@@ -622,12 +621,12 @@ void GPEGParser::encode(Gpeg_string *tmp,int modify_ret) {
   }
 }
 
-void GPEGParser::encode(Grouping *tmp,int modify_ret) {
+void GPEGParser::encode(Grouping *tmp) {
   assert( false ); /* DO NOT USE THIS FUNCTION */
   int dst_label = next_label++;
   writeln("cu = create("+itos(dst_label)+",cu,i);");
   Node *next = tmp->get();
-  encode(next,modify_ret);
+  encode(next);
   writeln("pop(cu,i);");
   ///////?????? writeln("goto _0;") ha?
   writeln("_"+itos(dst_label)+":;");
