@@ -67,21 +67,27 @@ namespace gpeg_parser {
     void write_add();
     void write_pop();
     void write_create();
+    void write_GSSNode();
+    void write_Descriptor();
+    void write_SaveData();
+    void write_types();
+    void write_rollback_and_move();
     void dispatch(std::string);
-    void encode(Node*);
+    void dispatch_macro();
+    void encode(Node*);/**/
     void encode(Nonterminal*);
     void encode(Slash*);
     void encode(Alternation*);
-    void encode(Char*);
-    void encode(And*);
-    void encode(Not*);
-    void encode(Sequence*);
+    void encode(Char*);/**/
+    void encode(And*);/**/
+    void encode(Not*);/**/
+    void encode(Sequence*);/**/
     void encode(Question*);
     void encode(Star*);
     void encode(Plus*);
-    void encode(Any*);
-    void encode(Range*);
-    void encode(Gpeg_string*);
+    void encode(Any*);/**/
+    void encode(Range*);/**/
+    void encode(Gpeg_string*);/**/
     void encode(Grouping*);
     
   public:
