@@ -68,6 +68,16 @@ void PackratParser::dump() {
 void PackratParser::write_packrat_return(int ID) {
   // -1 is for adjustment by first_ID
   writeln("if(memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr != -1) {",ID,1);
+  if( backtracking ) {
+    writeln("if( i > memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr ) { // WARNING -- IS IT TRUE?",ID,2);
+    writeln("++" + backtracking_counter + ";",ID,3);
+    writeln("}",ID,2);
+  }
+  if( longest_backtracking_distance ) {
+    writeln("if( i > memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr ) { // WARNING -- IS IT TRUE?",ID,2);
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr);",ID,3);
+    writeln("}",ID,2);
+  }
   writeln("i = memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr;",ID,2);
   writeln("return memo["+itos(ID-1)+"]["+ptr_name+"].result;",ID,2);
   writeln("}",ID,1);
@@ -110,6 +120,14 @@ void PackratParser::encode() {
     writeln("#define NUM_P "+itos(prot.size()),first_ID);
     writeln("vector<Data> memo[NUM_P];",first_ID);
   }
+  
+  if( backtracking ) {
+    writeln("int "+backtracking_counter+";",first_ID);
+  }
+
+  if( longest_backtracking_distance ) {
+    writeln("int "+longest_backtracking_distance_value+" = -1;",first_ID);
+  }
 
   last_ID = buffer.size();
   buffer.push_back("");
@@ -141,6 +159,16 @@ void PackratParser::encode() {
     writeln("cout << \"matching time :: \" << chrono::duration_cast<chrono::milliseconds>(ed-st).count() << \"msec\" << endl;",last_ID,1);
   }
   //writeln("cout << (parse_"+nonterminals[0]->getName()+"()?\"success\":\"fail\") << endl;",last_ID,1);
+  if( backtracking ) {
+    writeln("cout << \"backtracking :: [\" << " + backtracking_counter + " << \"]\" << endl;",last_ID,1);
+  }
+  if( longest_backtracking_distance ) {
+    writeln("if("+longest_backtracking_distance_value+"==-1) {",last_ID,1);
+    writeln("puts(\"longest backtracking distance :: [---]\");",last_ID,2);
+    writeln("} else {",last_ID,1);
+    writeln("cout << \"longest backtracking distance :: [\" << " + longest_backtracking_distance_value + " << \"]\" << endl;",last_ID,2);
+    writeln("}",last_ID,1);
+  }
   writeln("return 0;",last_ID,1);
   writeln("}",last_ID); // main
 
@@ -206,7 +234,9 @@ void PackratParser::encode(Nonterminal *cur,int ID=-1,int indent=0){
     } else {
       writeln("if(!parse_"+cur->getName()+"()) {",ID,indent);
       assert(ID>=1);
-      write_packrat_assign(ID,false,indent+1);
+      if( packrat ) {
+	write_packrat_assign(ID,false,indent+1);
+      }
       //writeln("memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+itos(ID-1)+"].next_ptr = "+ptr_name+";",ID,indent+1);
       //writeln("return memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+itos(ID-1)+"].result = false;",ID,indent+1);
       writeln("}",ID,indent);
@@ -262,10 +292,20 @@ void PackratParser::encode(Slash *tmp,int ID=-1,int indent=0) {
     std::string backtracking_ptr_name = "backtracking_ptr" + itos(suffix++);
     writeln("int "+backtracking_ptr_name+"="+ptr_name+";",ID,indent);
     writeln(success_flag+"|="+name_of_slash+"();",ID,indent);
-    writeln("if(!"+success_flag+") { "+ptr_name+"="+backtracking_ptr_name+"; }",ID,indent);
+    //writeln("if(!"+success_flag+") { "+ptr_name+"="+backtracking_ptr_name+"; }",ID,indent);
+    writeln("if(!"+success_flag+") {",ID,indent), ++indent;
+    if( longest_backtracking_distance ) {
+      writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+    }
+    writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
+    if( backtracking ) {
+      writeln("++"+backtracking_counter+";",ID,indent);
+    }
+    --indent, writeln("}",ID,indent);
     --indent, writeln("}",ID,indent);
 
   }
+
 
   writeln("if(!"+success_flag+") {",ID,indent), ++indent;
   if( packrat ) {
@@ -368,7 +408,13 @@ void PackratParser::encode(And *cur,int ID=-1,int indent=0) {
   std::string backtracking_ptr_name = "backtracking_ptr" + itos(suffix++);
   writeln("int "+backtracking_ptr_name+"="+ptr_name+";",ID,indent);
   writeln("if(!"+name_of_and+"()) {",ID,indent), ++indent;
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
   if( packrat ) {
     write_packrat_assign(ID,false,indent);
     //writeln("memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+"].next_ptr = "+ptr_name+";",ID,indent);
@@ -377,8 +423,13 @@ void PackratParser::encode(And *cur,int ID=-1,int indent=0) {
     writeln("return false;",ID,indent);
   }
   --indent, writeln("}",ID,indent);
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
-
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
 }
 
 void PackratParser::encode(Not *cur,int ID=-1,int indent=0) {
@@ -403,15 +454,26 @@ void PackratParser::encode(Not *cur,int ID=-1,int indent=0) {
   std::string backtracking_ptr_name = "backtracking_ptr" + itos(suffix++);
   writeln("int "+backtracking_ptr_name+"="+ptr_name+";",ID,indent);
   writeln("if("+name_of_not+"()) {",ID,indent), ++indent;
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
   if( packrat ) {
     write_packrat_assign(ID,false,indent);
   } else {
     writeln("return false;",ID,indent);
   }
   --indent, writeln("}",ID,indent);
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
-
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
 }
 
 void PackratParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
@@ -444,7 +506,13 @@ void PackratParser::encode(Question *cur,int ID=-1,int indent=0) {
   std::string backtracking_ptr_name = "backtracking_ptr" + itos(suffix++);
   writeln("int "+backtracking_ptr_name+"="+ptr_name+";",ID,indent);
   writeln("if(!"+name_of_question+"()) {",ID,indent), ++indent;
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
   --indent, writeln("}",ID,indent);
 }
 
@@ -472,8 +540,13 @@ void PackratParser::encode(Star *cur,int ID=-1,int indent=0) {
   writeln("while(" + name_of_while + "()) {",ID,indent),++indent;
   writeln(backtracking_ptr_name+"="+ptr_name+";",ID,indent);
   --indent,writeln("}",ID,indent);
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
-
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
 }
 
 void PackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
@@ -507,8 +580,13 @@ void PackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
   writeln("while(" + name_of_while + "()) {",ID,indent),++indent;
   writeln(backtracking_ptr_name+"="+ptr_name+";",ID,indent);
   --indent,writeln("}",ID,indent);
+  if( longest_backtracking_distance ) {
+    writeln(longest_backtracking_distance_value+" = max("+longest_backtracking_distance_value+","+ptr_name+"-"+backtracking_ptr_name+");",ID,indent);
+  }
   writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
-
+  if( backtracking ) {
+    writeln("++" + backtracking_counter + ";",ID,indent);
+  }
 }
 
 void PackratParser::encode(Any *cur,int ID=-1,int indent=0) {

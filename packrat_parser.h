@@ -16,8 +16,13 @@ namespace packrat_parser {
   class PackratParser {
   private:
     const bool packrat = true;
+    //const bool inline_ = true;
     const bool matching_time = true;
+    const bool backtracking = true;
+    const bool longest_backtracking_distance = true;
 
+    const std::string backtracking_counter = "backtracking_counter";
+    const std::string longest_backtracking_distance_value = "longest_backtracking_distance";
     const std::string ptr_name = "i";
     const std::string backtracking_ptr_for_packrat = "backtracking_ptr_for_packrat";
     Grammar* grammar;
