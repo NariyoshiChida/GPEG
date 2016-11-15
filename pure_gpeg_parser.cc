@@ -119,6 +119,8 @@ void PureGPEGParser::encode() {
   if( matching_time ) {
     writeln("auto ed = chrono::system_clock::now();",last_ID,1);
   }
+  writeln("sort(result.begin(),result.end());",last_ID,1);
+  writeln("result.erase(unique(result.begin(),result.end()),result.end());",last_ID,1);
   writeln("if(!( result.size() == 1 && result[0] == FAIL )) {",last_ID,1);
   writeln("puts(\"success\");",last_ID,2);
   writeln("for(int i=0;i<(int)result.size();++i) {",last_ID,2);
@@ -522,7 +524,7 @@ void PureGPEGParser::encode(Question *cur,int ID=-1,int indent=0) {
   --indent, writeln("}",ID,indent);
 }
 
-void PureGPEGParser::encode(Star *cur,int ID=-1,int indent=0) {
+void PureGPEGParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
   Node *next = cur->get();
 
   // parse_while -- BEGIN
