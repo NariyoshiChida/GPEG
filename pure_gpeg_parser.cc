@@ -564,10 +564,13 @@ void PureGPEGParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
   writeln("for(int "+index+"=0;"+index+"<(int)prev.size();++"+index+") {",ID,indent), ++indent;
   writeln(ptr_name + " = prev["+index+"];",ID,indent);
   writeln("tmp = " + name_of_while + "();",ID,indent);
+  writeln("if( (int)tmp.size() == 1 && tmp.front() == FAIL ) {",ID,indent), ++indent;
+  writeln(final_prev+".push_back(prev["+index+"]);",ID,indent);
+  --indent, writeln("}",ID,indent);
   std::string index2 = "i" + itos(suffix++);
   writeln("for(int "+index2+"=0;"+index2+"<(int)tmp.size();++"+index2+") {",ID,indent), ++indent;
   writeln("if(tmp["+index2+"]==FAIL) {",ID,indent), ++indent;
-  writeln(final_prev+".push_back(prev["+index+"]);",ID,indent);
+  //writeln(final_prev+".push_back(prev["+index+"]);",ID,indent);
   writeln("if(!( !"+next_prev+".empty() && "+next_prev+".front() == FAIL )) {",ID,indent), ++indent; 
   writeln(next_prev+".push_front(FAIL);",ID,indent);
   --indent, writeln("}",ID,indent); // if(!(!
