@@ -5,15 +5,15 @@
 #include"grammar.h"
 #include"node.h"
 
-#ifndef PURE_GPEG_PARSER_H
-#define PURE_GPEG_PARSER_H
+#ifndef GENERALIZED_PACKRAT_PARSER_H
+#define GENERALIZED_PACKRAT_PARSER_H
 
 #define OFF -1
 
-namespace pure_gpeg_parser {
+namespace generalized_packrat_parser {
   
   // GPEG parser by Recursive Descent
-  class PureGPEGParser {
+  class GeneralizedPackratParser {
   private:
     //const bool inline_ = true;
     const bool matching_time = true;
@@ -52,7 +52,7 @@ namespace pure_gpeg_parser {
 
   public:
 
-    PureGPEGParser(){
+    GeneralizedPackratParser(){
       suffix = 0;
       grammar = nullptr;
       buffer.clear();
@@ -66,6 +66,6 @@ namespace pure_gpeg_parser {
 
   };
 
-} // pure_gpeg_parser
+} // generalized_packrat_parser
 
-#endif // PURE_GPEG_PARSER_H
+#endif // GENERALIZED_PACKRAT_PARSER_H

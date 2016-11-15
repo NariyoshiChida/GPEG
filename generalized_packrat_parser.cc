@@ -1,4 +1,4 @@
-#include"pure_gpeg_parser.h"
+#include"generalized_packrat_parser.h"
 #include"grammar.h"
 #include"slash.h"
 #include"char.h"
@@ -16,24 +16,25 @@
 #include<set>
 #include<functional>
 
-using pure_gpeg_parser::PureGPEGParser;
+using generalized_packrat_parser::GeneralizedPackratParser;
 
 //bool show_trace = false; // duplicateになる
 
-std::ostream& operator << (std::ostream& os, const PureGPEGParser& gpp) {
+std::ostream& operator << (std::ostream& os, const GeneralizedPackratParser& gpp) {
   os << "[[Pure GPEG Parser]]";
   return os;
 }
 
 inline std::string itos(int i) { std::stringstream ss; ss << i; return ss.str(); }
 
-void PureGPEGParser::set(Grammar *tmp) { grammar = tmp; }
+
+void GeneralizedPackratParser::set(Grammar *tmp) { grammar = tmp; }
 
 // <--- encode --->
 
 // replaced by dispatch_macro
 
-void PureGPEGParser::writeln(std::string s,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::writeln(std::string s,int ID=-1,int indent=0) {
   if( ID == -1 ) {
     std::cout << std::string(indent*2,' ') << s << std::endl;
   } else {
@@ -42,7 +43,7 @@ void PureGPEGParser::writeln(std::string s,int ID=-1,int indent=0) {
   }
 }
 
-void PureGPEGParser::write(std::string s,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::write(std::string s,int ID=-1,int indent=0) {
   if( ID == -1 ) {
     std::cout << std::string(indent*2,' ') << s;
   } else {
@@ -51,7 +52,7 @@ void PureGPEGParser::write(std::string s,int ID=-1,int indent=0) {
   }
 }
 
-void PureGPEGParser::dump() {
+void GeneralizedPackratParser::dump() {
   std::cout << buffer[first_ID];
   std::cout << std::endl;
   for(int i=0;i<(int)prot.size();++i) {
@@ -66,7 +67,7 @@ void PureGPEGParser::dump() {
   std::cout << buffer[last_ID];
 }
 
-void PureGPEGParser::write_packrat_return(int ID) {
+void GeneralizedPackratParser::write_packrat_return(int ID) {
   // -1 is for adjustment by first_ID
   writeln("if(memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr != -1) {",ID,1);
   writeln("i = memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr;",ID,2);
@@ -75,13 +76,13 @@ void PureGPEGParser::write_packrat_return(int ID) {
   writeln("int " + backtracking_ptr_for_packrat + itos(ID-1) +"=" + ptr_name + ";",ID,1);
 }
 
-void PureGPEGParser::write_packrat_assign(int ID,bool result,int indent) {
+void GeneralizedPackratParser::write_packrat_assign(int ID,bool result,int indent) {
   writeln("memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+itos(ID-1)+"].next_ptr = "+ptr_name+";",ID,indent);
   writeln("return memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+itos(ID-1)+"].result = "+(result?"true":"false")+";",ID,indent);
 }
 
 
-void PureGPEGParser::encode() {
+void GeneralizedPackratParser::encode() {
   buffer.clear();
   first_ID = buffer.size();
   buffer.push_back("");
@@ -140,7 +141,7 @@ void PureGPEGParser::encode() {
   dump();
 }
 
-void PureGPEGParser::encode(Node *node,int ID,int indent) {
+void GeneralizedPackratParser::encode(Node *node,int ID,int indent) {
   int type = node->type;
   if( type == NONTERMINAL ) {
     Nonterminal* tmp = (Nonterminal*)node->values[NONTERMINAL];
@@ -190,7 +191,7 @@ void PureGPEGParser::encode(Node *node,int ID,int indent) {
   }
 }
 
-void PureGPEGParser::encode(Nonterminal *cur,int ID=-1,int indent=0){
+void GeneralizedPackratParser::encode(Nonterminal *cur,int ID=-1,int indent=0){
   if( cur->getExpression() == nullptr ) { // in a parsing expression ( e.g A <- 'a' [[A]]
     writeln("/* Nonterminal ("+cur->getName()+") */",ID,indent);
     
@@ -249,7 +250,7 @@ void PureGPEGParser::encode(Nonterminal *cur,int ID=-1,int indent=0){
 }
 
 
-void PureGPEGParser::encode(Slash *tmp,int ID=-1,int indent=0) {  // MODIFIED
+void GeneralizedPackratParser::encode(Slash *tmp,int ID=-1,int indent=0) {  // MODIFIED
   std::deque<Node*> alternates = tmp->getAlternates();
   writeln("/* Prioritized Choice */",ID,indent);
   std::string i = "i" + itos(suffix++);
@@ -314,7 +315,7 @@ void PureGPEGParser::encode(Slash *tmp,int ID=-1,int indent=0) {  // MODIFIED
 /*
  * A <- 'a' ( 'b' | 'c' ) 'd'
  */
-void PureGPEGParser::encode(Alternation *tmp,int ID=-1,int indent=0) { // MODIFIED
+void GeneralizedPackratParser::encode(Alternation *tmp,int ID=-1,int indent=0) { // MODIFIED
   std::deque<Node*> alternates = tmp->getAlternates();
   writeln("/* Alternation */",ID,indent);
   std::string next_prev = "next_prev" + itos(suffix++);
@@ -374,7 +375,7 @@ void PureGPEGParser::encode(Alternation *tmp,int ID=-1,int indent=0) { // MODIFI
 
 }
 
-void PureGPEGParser::encode(Char *tmp,int ID=-1,int indent=0) { // MODIFIED
+void GeneralizedPackratParser::encode(Char *tmp,int ID=-1,int indent=0) { // MODIFIED
 
   writeln("tmp.clear();",ID,indent);
   std::string i = "i" + itos(suffix++);
@@ -401,7 +402,7 @@ void PureGPEGParser::encode(Char *tmp,int ID=-1,int indent=0) { // MODIFIED
   writeln("prev = tmp;",ID,indent);
 }
 
-void PureGPEGParser::encode(And *cur,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::encode(And *cur,int ID=-1,int indent=0) {
   Node *next = cur->get();
 
 // parse_and -- BEGIN
@@ -449,7 +450,7 @@ void PureGPEGParser::encode(And *cur,int ID=-1,int indent=0) {
 
 }
 
-void PureGPEGParser::encode(Not *cur,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::encode(Not *cur,int ID=-1,int indent=0) {
   Node *next = cur->get();
 
   // parse_not -- BEGIN
@@ -497,7 +498,7 @@ void PureGPEGParser::encode(Not *cur,int ID=-1,int indent=0) {
   
 }
 
-void PureGPEGParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
   std::deque<Node*> sequence = tmp->getSequence();
   assert( sequence.size() );
   for(int i=0;i<(int)sequence.size();++i) {
@@ -505,7 +506,7 @@ void PureGPEGParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
   }
 }
 
-void PureGPEGParser::encode(Question *cur,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::encode(Question *cur,int ID=-1,int indent=0) {
   Node *next = cur->get();
   std::string name_of_question = "parse_question" + itos(suffix++);
   int question_ID = buffer.size();
@@ -524,7 +525,7 @@ void PureGPEGParser::encode(Question *cur,int ID=-1,int indent=0) {
   --indent, writeln("}",ID,indent);
 }
 
-void PureGPEGParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
+void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
   Node *next = cur->get();
 
   // parse_while -- BEGIN
@@ -584,7 +585,7 @@ void PureGPEGParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
   writeln("prev = " + final_prev + ";",ID,indent);
 }
 
-void PureGPEGParser::encode(Plus *cur,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
   Node *next = cur->get();
   std::string name_of_while = "parse_while" + itos(suffix++);
   int while_ID = buffer.size();
@@ -608,7 +609,7 @@ void PureGPEGParser::encode(Plus *cur,int ID=-1,int indent=0) {
 
 }
 
-void PureGPEGParser::encode(Any *cur,int ID=-1,int indent=0) { // MODIFIED
+void GeneralizedPackratParser::encode(Any *cur,int ID=-1,int indent=0) { // MODIFIED
   writeln("tmp.clear();",ID,indent);
   std::string i = "i" + itos(suffix++);
   writeln("for(int "+i+"=0;"+i+"<(int)prev.size();++"+i+") {",ID,indent), ++indent;
@@ -629,7 +630,7 @@ void PureGPEGParser::encode(Any *cur,int ID=-1,int indent=0) { // MODIFIED
   writeln("prev = tmp;",ID,indent);
 }
 
-void PureGPEGParser::encode(Range *cur,int ID=-1,int indent=0) { // MODIFIED
+void GeneralizedPackratParser::encode(Range *cur,int ID=-1,int indent=0) { // MODIFIED
   std::string cs = cur->get();
   std::string condition = "";
   for(int i=0;i<(int)cs.size();++i) {
@@ -678,7 +679,7 @@ void PureGPEGParser::encode(Range *cur,int ID=-1,int indent=0) { // MODIFIED
 
 }
 
-void PureGPEGParser::encode(Gpeg_string *tmp,int ID=-1,int indent=0) {  // MODIFIED
+void GeneralizedPackratParser::encode(Gpeg_string *tmp,int ID=-1,int indent=0) {  // MODIFIED
   std::string str = tmp->get();
   for(int i=0;i<(int)str.size();++i) {
     writeln("tmp.clear();",ID,indent);
@@ -709,7 +710,7 @@ void PureGPEGParser::encode(Gpeg_string *tmp,int ID=-1,int indent=0) {  // MODIF
   }
 }
 
-void PureGPEGParser::encode(Grouping *tmp,int ID=-1,int indent=0) {
+void GeneralizedPackratParser::encode(Grouping *tmp,int ID=-1,int indent=0) {
   assert( false ); /* DO NOT USE THIS FUNCTION */
   Node *next = tmp->get();
   encode(next,ID,indent);
