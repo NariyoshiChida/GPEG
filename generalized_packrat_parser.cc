@@ -21,7 +21,7 @@ using generalized_packrat_parser::GeneralizedPackratParser;
 //bool show_trace = false; // duplicateになる
 
 std::ostream& operator << (std::ostream& os, const GeneralizedPackratParser& gpp) {
-  os << "[[Pure GPEG Parser]]";
+  os << "[[Generalized Packrat Parser]]";
   return os;
 }
 
@@ -69,16 +69,14 @@ void GeneralizedPackratParser::dump() {
 
 void GeneralizedPackratParser::write_packrat_return(int ID) {
   // -1 is for adjustment by first_ID
-  writeln("if(memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr != -1) {",ID,1);
-  writeln("i = memo["+itos(ID-1)+"]["+ptr_name+"].next_ptr;",ID,2);
-  writeln("return memo["+itos(ID-1)+"]["+ptr_name+"].result;",ID,2);
+  writeln("if(memo.count(key("+itos(ID-1)+","+ptr_name+"))) {",ID,1);
+  writeln("return memo[key("+itos(ID-1)+","+ptr_name+")];",ID,2);
   writeln("}",ID,1);
   writeln("int " + backtracking_ptr_for_packrat + itos(ID-1) +"=" + ptr_name + ";",ID,1);
 }
 
-void GeneralizedPackratParser::write_packrat_assign(int ID,bool result,int indent) {
-  writeln("memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+itos(ID-1)+"].next_ptr = "+ptr_name+";",ID,indent);
-  writeln("return memo["+itos(ID-1)+"]["+backtracking_ptr_for_packrat+itos(ID-1)+"].result = "+(result?"true":"false")+";",ID,indent);
+void GeneralizedPackratParser::write_packrat_assign(int ID,int indent) {
+  writeln("return memo[key("+itos(ID-1)+","+backtracking_ptr_for_packrat+itos(ID-1)+")] = result;",ID,indent);
 }
 
 
@@ -95,8 +93,11 @@ void GeneralizedPackratParser::encode() {
   writeln("int m;",first_ID);
   writeln("int "+ptr_name+";",first_ID);
   writeln("string I;",first_ID);
-  
-  writeln("",first_ID);
+
+  if( packrat ) {
+    writeln("typedef pair<int,int> key;",first_ID);
+    writeln("map<key,deque<int>> memo;",first_ID);
+  }
 
   std::vector<Nonterminal*> nonterminals = grammar->getNonterminals();
   assert( nonterminals.size() );
@@ -228,6 +229,9 @@ void GeneralizedPackratParser::encode(Nonterminal *cur,int ID=-1,int indent=0){
     buffer.push_back("");
     prot.push_back("parse_"+cur->getName());
     writeln("deque<int> parse_"+cur->getName()+"(){",ID,indent), ++indent;
+    if( packrat ){
+      write_packrat_return(ID);
+    }
     writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",ID,indent);
     writeln("deque<int> tmp;",ID,indent);
     std::string i = "i" + itos(suffix++);
@@ -244,7 +248,11 @@ void GeneralizedPackratParser::encode(Nonterminal *cur,int ID=-1,int indent=0){
     writeln(succ_buffer+".push_back(prev["+i+"]);",ID,indent);
     --indent, writeln("}",ID,indent);
     --indent,writeln("}",ID,indent);
-    writeln("return "+succ_buffer+";",ID,indent);
+    if( packrat ) {
+      write_packrat_assign(ID,indent);
+    } else {
+      writeln("return "+succ_buffer+";",ID,indent);
+    }
     --indent, writeln("}",ID,indent);
   }
 }
@@ -269,6 +277,9 @@ void GeneralizedPackratParser::encode(Slash *tmp,int ID=-1,int indent=0) {  // M
     buffer.push_back("");
     prot.push_back(name_of_slash);
     writeln("inline deque<int> " + name_of_slash + "() { ",slash_ID);
+    if( packrat ) {
+      write_packrat_return(slash_ID);
+    }
     writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",slash_ID,1);
     writeln("deque<int> tmp;",slash_ID,1);
     std::string k = "i" + itos(suffix++);
@@ -284,7 +295,11 @@ void GeneralizedPackratParser::encode(Slash *tmp,int ID=-1,int indent=0) {  // M
     writeln(succ_buffer+".push_back(prev["+k+"]);",slash_ID,3); 
     writeln("}",slash_ID,2); // else
     writeln("}",slash_ID,1); // for prev
-    writeln("return "+succ_buffer+";",slash_ID,1);
+    if( packrat ) {
+      write_packrat_assign(slash_ID,1);
+    } else {
+      writeln("return "+succ_buffer+";",slash_ID,1);
+    }
     writeln("}",slash_ID,0); // parse_slash
     // parse_slash -- END
 
@@ -336,6 +351,9 @@ void GeneralizedPackratParser::encode(Alternation *tmp,int ID=-1,int indent=0) {
     buffer.push_back("");
     prot.push_back(name_of_alternate);
     writeln("inline deque<int> " + name_of_alternate + "() { ",alternation_ID);
+    if( packrat ) {
+      write_packrat_return(alternation_ID);
+    }
     writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",alternation_ID,1);
     writeln("deque<int> tmp;",alternation_ID,1);
     std::string k = "i" + itos(suffix++);
@@ -351,7 +369,11 @@ void GeneralizedPackratParser::encode(Alternation *tmp,int ID=-1,int indent=0) {
     writeln(succ_buffer+".push_back(prev["+k+"]);",alternation_ID,3); 
     writeln("}",alternation_ID,2); // else
     writeln("}",alternation_ID,1); // for prev
-    writeln("return "+succ_buffer+";",alternation_ID,1);
+    if( packrat ) {
+      write_packrat_assign(alternation_ID,1);
+    } else {
+      writeln("return "+succ_buffer+";",alternation_ID,1);
+    }
     writeln("}",alternation_ID,0); // parse_slash
     // parse_alternation -- END    
 
@@ -411,6 +433,9 @@ void GeneralizedPackratParser::encode(And *cur,int ID=-1,int indent=0) {
   buffer.push_back("");
   prot.push_back(name_of_and);
   writeln("inline deque<int> " + name_of_and + "() { ",and_ID);
+  if( packrat ) {
+    write_packrat_return(and_ID);
+  }
   writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",and_ID,1);
   writeln("deque<int> tmp;",and_ID,1);
   std::string k = "i" + itos(suffix++);
@@ -426,7 +451,11 @@ void GeneralizedPackratParser::encode(And *cur,int ID=-1,int indent=0) {
   writeln(succ_buffer+".push_back(prev["+k+"]);",and_ID,3); 
   writeln("}",and_ID,2); // else
   writeln("}",and_ID,1); // for prev
-  writeln("return "+succ_buffer+";",and_ID,1);
+  if( packrat ) {
+    write_packrat_assign(and_ID,1);
+  } else {
+    writeln("return "+succ_buffer+";",and_ID,1);
+  }
   writeln("}",and_ID,0); // parse_slash
   // parse_and -- END
 
@@ -459,6 +488,9 @@ void GeneralizedPackratParser::encode(Not *cur,int ID=-1,int indent=0) {
   buffer.push_back("");
   prot.push_back(name_of_not);
   writeln("inline deque<int> " + name_of_not + "() { ",not_ID);
+  if( packrat ) {
+    write_packrat_return(not_ID);
+  }
   writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",not_ID,1);
   writeln("deque<int> tmp;",not_ID,1);
   std::string k = "i" + itos(suffix++);
@@ -474,7 +506,11 @@ void GeneralizedPackratParser::encode(Not *cur,int ID=-1,int indent=0) {
   writeln(succ_buffer+".push_back(prev["+k+"]);",not_ID,3); 
   writeln("}",not_ID,2); // else
   writeln("}",not_ID,1); // for prev
-  writeln("return "+succ_buffer+";",not_ID,1);
+  if( packrat ) {
+    write_packrat_assign(not_ID,1);
+  } else {
+    writeln("return "+succ_buffer+";",not_ID,1);
+  }
   writeln("}",not_ID,0); // parse_slash
   // parse_not -- END
 
@@ -534,6 +570,9 @@ void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MOD
   buffer.push_back("");
   prot.push_back(name_of_while);
   writeln("inline deque<int> " + name_of_while + "() { ",while_ID);
+  if( packrat ) {
+    write_packrat_return(while_ID);
+  }
   writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",while_ID,1);
   writeln("deque<int> tmp;",while_ID,1);
   std::string k = "i" + itos(suffix++);
@@ -549,7 +588,11 @@ void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MOD
   writeln(succ_buffer+".push_back(prev["+k+"]);",while_ID,3); 
   writeln("}",while_ID,2); // else
   writeln("}",while_ID,1); // for prev
-  writeln("return "+succ_buffer+";",while_ID,1);
+  if( packrat ) {
+    write_packrat_assign(while_ID,1);
+  } else {
+    writeln("return "+succ_buffer+";",while_ID,1);
+  }
   writeln("}",while_ID,0); // parse_slash
   // parse_while -- END  
 
@@ -598,7 +641,7 @@ void GeneralizedPackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
   
   writeln("/* Plus */",ID,indent);
   writeln("if(!"+name_of_while+"()) {",ID,indent), ++indent;
-  write_packrat_assign(ID,false,indent);
+  write_packrat_assign(ID,indent);
   --indent, writeln("}",ID,indent);
   std::string backtracking_ptr_name = "backtracking_ptr" + itos(suffix++);
   writeln("int "+backtracking_ptr_name+"="+ptr_name+";",ID,indent);

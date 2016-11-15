@@ -16,7 +16,10 @@ namespace generalized_packrat_parser {
   class GeneralizedPackratParser {
   private:
     //const bool inline_ = true;
+    // Options
     const bool matching_time = true;
+    const bool packrat       = true;
+
 
     const std::string ptr_name = "i";
     const std::string backtracking_ptr_for_packrat = "backtracking_ptr_for_packrat";
@@ -32,7 +35,7 @@ namespace generalized_packrat_parser {
     void writeln(std::string,int,int);
     void write(std::string,int,int);
     void write_packrat_return(int);
-    void write_packrat_assign(int,bool,int);
+    void write_packrat_assign(int,int);
     void encode(Node*,int,int);/**/
     void encode(Nonterminal*,int,int);
     void encode(Slash*,int,int);
