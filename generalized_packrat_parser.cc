@@ -537,8 +537,10 @@ void GeneralizedPackratParser::encode(Not *cur,int ID=-1,int indent=0) {
 void GeneralizedPackratParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
   std::deque<Node*> sequence = tmp->getSequence();
   assert( sequence.size() );
-  for(int i=0;i<(int)sequence.size();++i) {
+  for(int i=0;i<(int)sequence.size();++i) { 
+    writeln("if(!((int)prev.size()==1&&prev.front()==FAIL)) {",ID,indent), ++indent; // CHECK
     encode(sequence[i],ID,indent);
+    --indent, writeln("}",ID,indent); // CHECK
   }
 }
 
