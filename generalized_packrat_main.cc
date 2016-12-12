@@ -1,4 +1,6 @@
-#include<bits/stdc++.h>
+#include <iostream>
+#include <cstdio>
+#include <vector>
 #include "gpeg_parser.h"
 #include "generalized_packrat_parser.h"
 
