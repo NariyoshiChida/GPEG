@@ -545,22 +545,81 @@ void GeneralizedPackratParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
 }
 
 void GeneralizedPackratParser::encode(Question *cur,int ID=-1,int indent=0) {
-  Node *next = cur->get();
-  std::string name_of_question = "parse_question" + itos(suffix++);
-  int question_ID = buffer.size();
-  buffer.push_back("");
-  prot.push_back(name_of_question);
-  writeln("inline bool " + name_of_question + "() { ",question_ID);
-  encode(next,question_ID,1);
-  writeln("return true;",question_ID,1);
-  writeln("}",question_ID);
   
-  writeln("/* Question */",ID,indent);
-  std::string backtracking_ptr_name = "backtracking_ptr" + itos(suffix++);
-  writeln("int "+backtracking_ptr_name+"="+ptr_name+";",ID,indent);
-  writeln("if(!"+name_of_question+"()) {",ID,indent), ++indent;
-  writeln(ptr_name+"="+backtracking_ptr_name+";",ID,indent);
-  --indent, writeln("}",ID,indent);
+  
+  std::deque<Node*> alternates;// = tmp->getAlternates();
+  alternates.push_back(cur->get());
+  {
+    Node* node = new Node;
+    Gpeg_string* tmp = new Gpeg_string;
+    tmp->set("");
+    node->setValue(tmp);
+    alternates.push_back(node);
+  }
+  writeln("/* Question ( = e / '' ) */",ID,indent);
+  std::string i = "i" + itos(suffix++);
+  std::string next_prev = "next_prev" + itos(suffix++);
+  std::string final_prev = "prioritized_choice_final_prev" + itos(suffix++);
+  writeln("deque<int> "+next_prev+";",ID,indent);
+  writeln("deque<int> "+final_prev+";",ID,indent);
+  for(int j=0;j<(int)alternates.size();++j) {
+    writeln(next_prev+".clear();",ID,indent);
+    writeln("for(int "+i+"=0;"+i+"<(int)prev.size();++"+i+") {",ID,indent), ++indent;
+    writeln(ptr_name+" = prev["+i+"];",ID,indent);
+
+    // parse_slash -- BEGIN
+    std::string name_of_slash = "parse_slash" + itos(suffix++);
+    int slash_ID = buffer.size();
+    buffer.push_back("");
+    prot.push_back(name_of_slash);
+    writeln("inline deque<int> " + name_of_slash + "() { ",slash_ID);
+    if( packrat ) {
+      write_packrat_return(slash_ID);
+    }
+    writeln("deque<int> "+succ_buffer+"; // we use -1 to denote failure",slash_ID,1);
+    writeln("deque<int> tmp;",slash_ID,1);
+    std::string k = "i" + itos(suffix++);
+    writeln("deque<int> prev; //ちょうど今失敗せずに残っているポインタ",slash_ID,1);
+    writeln("prev.push_back("+ptr_name+");",slash_ID,1);
+    encode(alternates[j],slash_ID,1);
+    writeln("for(int "+k+"=0;"+k+"<(int)prev.size();++"+k+") {",slash_ID,1);
+    writeln("if( prev["+k+"] == FAIL ) {",slash_ID,2);
+    writeln("if(!( !"+succ_buffer+".empty() && "+succ_buffer+"[0] == FAIL )) {",slash_ID,3);
+    writeln(succ_buffer+".push_front(FAIL);",slash_ID,4);
+    writeln("}",slash_ID,3); // if(!(
+    writeln("} else {",slash_ID,2); // if( prev
+    writeln(succ_buffer+".push_back(prev["+k+"]);",slash_ID,3); 
+    writeln("}",slash_ID,2); // else
+    writeln("}",slash_ID,1); // for prev
+    if( packrat ) {
+      write_packrat_assign(slash_ID,1);
+    } else {
+      writeln("return "+succ_buffer+";",slash_ID,1);
+    }
+    writeln("}",slash_ID,0); // parse_slash
+    // parse_slash -- END
+
+
+
+    writeln("tmp = "+name_of_slash+"();",ID,indent);
+    writeln("if(!tmp.empty()&&tmp[0]==FAIL) { " + next_prev +".push_back(prev["+i+"]); }",ID,indent);
+    std::string l = "i"+itos(suffix++);
+    writeln("for(int "+l+"=0;"+l+"<(int)tmp.size();++"+l+") {",ID,indent), ++indent;
+    writeln("if( tmp["+l+"] != FAIL ) {",ID,indent), ++indent;    
+    writeln(final_prev+".push_back(tmp["+l+"]);",ID,indent); 
+    --indent, writeln("}",ID,indent); // if
+    --indent, writeln("}",ID,indent); // for
+    --indent, writeln("}",ID,indent); // for
+    writeln("prev = "+next_prev+";",ID,indent);
+    
+  }
+  
+  writeln("if(!prev.empty()) {",ID,indent), ++indent;
+  writeln("if(!(!"+final_prev+".empty() && "+final_prev+".front() == FAIL )) {",ID,indent), ++indent;
+  writeln(final_prev + ".push_front(FAIL);",ID,indent);
+  --indent, writeln("}",ID,indent); // if ! final_prev
+  --indent, writeln("}",ID,indent); // if ! prev.empty()
+  writeln("prev = " + final_prev + ";",ID,indent);
 }
 
 void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
