@@ -636,7 +636,7 @@ void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MOD
 
 void GeneralizedPackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
   Node* plus = new Node;
-  plus->setType(6); // SLASH
+  plus->setType(6); // SEQUENCE
   plus->add(cur->get());
   {
     Node* tmp = new Node;
@@ -672,32 +672,33 @@ void GeneralizedPackratParser::encode(Any *cur,int ID=-1,int indent=0) { // MODI
 void GeneralizedPackratParser::encode(Range *cur,int ID=-1,int indent=0) { // MODIFIED
   std::string cs = cur->get();
   std::string condition = "";
-  for(int i=0;i<(int)cs.size();++i) {
-    if( i ) {
+  std::string i = "i" + itos(suffix++);
+  for(int j=0;j<(int)cs.size();++j) {
+    if( j ) {
       condition += "||";
     }
-    if( i+2 < (int)cs.size() && cs[i+1] == '-' && cs[i] <= cs[i+2] ) { // incorrect
-      for(char c=cs[i];c<=cs[i+2];++c) {
-	if( c != cs[i] ) condition += "||";
+    if( j+2 < (int)cs.size() && cs[j+1] == '-' && cs[j] <= cs[j+2] ) { // incorrect
+      for(char c=cs[j];c<=cs[j+2];++c) {
+	if( c != cs[j] ) condition += "||";
 	if( !( c == '\\' ) && ( isgraph(c) || c == ' ' ) ) {
-	  condition += ("I["+ptr_name+"]=='"+std::string(1,c)+"'");
+	  condition += ("I[prev["+i+"]]=='"+std::string(1,c)+"'");
 	} else {
-	  condition += ("I["+ptr_name+"]==(char)"+itos((int)c)+"");
+	  condition += ("I[prev["+i+"]]==(char)"+itos((int)c)+"");
 	}
       }
-      i += 2;
+      j += 2;
     } else {
-      if( !( cs[i] == '\\' ) && ( isgraph(cs[i]) || cs[i] == ' ' ) ) {
-	condition += ("I["+ptr_name+"]=='"+std::string(1,cs[i])+"'");
+      if( !( cs[j] == '\\' ) && ( isgraph(cs[j]) || cs[j] == ' ' ) ) {
+	condition += ("I[prev["+i+"]]=='"+std::string(1,cs[j])+"'");
       } else {
-	condition += ("I["+ptr_name+"]==(char)"+itos((int)cs[i])+"");
+	condition += ("I[prev["+i+"]]==(char)"+itos((int)cs[j])+"");
       }
     }
   }
 
 
   writeln("tmp.clear();",ID,indent);
-  std::string i = "i" + itos(suffix++);
+
   writeln("for(int "+i+"=0;"+i+"<(int)prev.size();++"+i+") {",ID,indent), ++indent;
   writeln("if( prev["+i+"] == FAIL ) {",ID,indent), ++indent;
   writeln("if(!(!tmp.empty()&&tmp.front()==FAIL)) {",ID,indent), ++indent;
@@ -705,7 +706,7 @@ void GeneralizedPackratParser::encode(Range *cur,int ID=-1,int indent=0) { // MO
   --indent, writeln("}",ID,indent); // if(!(!tmp.empty()
   writeln("continue;",ID,indent);
   --indent, writeln("}",ID,indent); // if ( prev[j]
-  writeln("if("+ptr_name+"<m&&("+condition+")) {",ID,indent), ++indent;
+  writeln("if(prev["+i+"]<m&&("+condition+")) {",ID,indent), ++indent;
   writeln("tmp.push_back(prev["+i+"]+1);",ID,indent);
   --indent, writeln("} else {",ID,indent), ++indent;
   writeln("if(!( !tmp.empty() && tmp.front() == FAIL )){",ID,indent), ++indent;
