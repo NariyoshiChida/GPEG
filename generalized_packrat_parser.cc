@@ -552,6 +552,7 @@ void GeneralizedPackratParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
 }
 
 void GeneralizedPackratParser::encode(Question *cur,int ID=-1,int indent=0) {
+  
   Node* question = new Node;
   question->setType(1); // SLASH
   question->add(cur->get());
@@ -563,6 +564,7 @@ void GeneralizedPackratParser::encode(Question *cur,int ID=-1,int indent=0) {
     question->add(node);
   }
   encode(question,ID,indent);
+
 }
 
 void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MODIFIED
@@ -633,10 +635,17 @@ void GeneralizedPackratParser::encode(Star *cur,int ID=-1,int indent=0) { // MOD
 }
 
 void GeneralizedPackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
-
-
-
-
+  Node* plus = new Node;
+  plus->setType(6); // SLASH
+  plus->add(cur->get());
+  {
+    Node* tmp = new Node;
+    Star* star = new Star;
+    star->set(cur->get());
+    tmp->setValue(star);
+    plus->add(tmp);
+  }
+  encode(plus,ID,indent);
 }
 
 void GeneralizedPackratParser::encode(Any *cur,int ID=-1,int indent=0) { // MODIFIED
