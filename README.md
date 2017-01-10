@@ -22,6 +22,14 @@ Value
 	/ '(' Expression ')'
 ```
 
+```
+./generalized_packrat_main > ambiguous.cc
+S <- 'a' S | 'a' S 'b' S | ''
+```
+
+
+
+
 
 
 
