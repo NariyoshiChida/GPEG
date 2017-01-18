@@ -658,7 +658,8 @@ void GeneralizedPackratParser::encode(Any *cur,int ID=-1,int indent=0) { // MODI
   --indent, writeln("}",ID,indent); // if(!(!tmp.empty()
   writeln("continue;",ID,indent);
   --indent, writeln("}",ID,indent); // if ( prev[j]
-  writeln("if(prev["+i+"]<m&&(isgraph((char)I[prev["+i+"]])||(I[prev["+i+"]]==' '))) {//any character",ID,indent), ++indent;
+  //writeln("if(prev["+i+"]<m&&(isgraph((char)I[prev["+i+"]])||(I[prev["+i+"]]==' '))) {//any character",ID,indent), ++indent;
+  writeln("if(prev["+i+"]<m) {//any character",ID,indent), ++indent;
   writeln("tmp.push_back(prev["+i+"]+1);",ID,indent);
   --indent, writeln("} else {",ID,indent), ++indent;
   writeln("if(!( !tmp.empty() && tmp.front() == FAIL )){",ID,indent), ++indent;
