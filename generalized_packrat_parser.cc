@@ -416,7 +416,7 @@ void GeneralizedPackratParser::encode(Char *tmp,int ID=-1,int indent=0) { // MOD
     writeln("continue;",ID,indent);
     --indent, writeln("}",ID,indent); // if ( prev[j]
   char value = tmp->getValue();
-  if( !( value == '\\' ) && ( isgraph(value) || value == ' ' ) ) {
+  if( !( value == '\\' || value == '\'' ) && ( isgraph(value) || value == ' ' ) ) {
     writeln("if(prev["+i+"]<m&&I[prev["+i+"]]=='"+std::string(1,value)+"') {",ID,indent), ++indent;
   } else {
     writeln("if(prev["+i+"]<m&&I[prev["+i+"]]==(char)"+itos((int)value)+") {",ID,indent), ++indent;
@@ -677,10 +677,10 @@ void GeneralizedPackratParser::encode(Range *cur,int ID=-1,int indent=0) { // MO
     if( j ) {
       condition += "||";
     }
-    if( j+2 < (int)cs.size() && cs[j+1] == '-' && cs[j] <= cs[j+2] ) { // incorrect
+    if( j+2 < (int)cs.size() && cs[j+1] == '-' ) { // incorrect
       for(char c=cs[j];c<=cs[j+2];++c) {
 	if( c != cs[j] ) condition += "||";
-	if( !( c == '\\' ) && ( isgraph(c) || c == ' ' ) ) {
+	if( !( c == '\\' || c == '\'' || c == '"' ) && ( isgraph(c) || c == ' ' ) ) {
 	  condition += ("I[prev["+i+"]]=='"+std::string(1,c)+"'");
 	} else {
 	  condition += ("I[prev["+i+"]]==(char)"+itos((int)c)+"");
@@ -688,7 +688,7 @@ void GeneralizedPackratParser::encode(Range *cur,int ID=-1,int indent=0) { // MO
       }
       j += 2;
     } else {
-      if( !( cs[j] == '\\' ) && ( isgraph(cs[j]) || cs[j] == ' ' ) ) {
+      if( !( cs[j] == '\\' || cs[j] == '\'' ) && ( isgraph(cs[j]) || cs[j] == ' ' ) ) {
 	condition += ("I[prev["+i+"]]=='"+std::string(1,cs[j])+"'");
       } else {
 	condition += ("I[prev["+i+"]]==(char)"+itos((int)cs[j])+"");
