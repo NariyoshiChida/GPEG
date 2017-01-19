@@ -18,8 +18,8 @@ namespace generalized_packrat_parser {
     //const bool inline_ = true;
     // Options
     const bool matching_time = true;
-    const bool packrat       = true;
-
+    const bool packrat       = true; 
+    const bool hash_map      = true; // use unordered_map for memoization
 
     const std::string ptr_name = "i";
     const std::string backtracking_ptr_for_packrat = "backtracking_ptr_for_packrat";
@@ -36,6 +36,7 @@ namespace generalized_packrat_parser {
     void write(std::string,int,int);
     void write_packrat_return(int);
     void write_packrat_assign(int,int);
+    void write_hash_function(int,int,int);
     void encode(Node*,int,int);/**/
     void encode(Nonterminal*,int,int);
     void encode(Slash*,int,int);

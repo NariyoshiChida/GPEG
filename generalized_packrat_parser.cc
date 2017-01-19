@@ -12,6 +12,7 @@
 #include<cassert>
 #include<deque>
 #include<sstream>
+#include<cmath>
 #include<map>
 #include<set>
 #include<functional>
@@ -79,6 +80,23 @@ void GeneralizedPackratParser::write_packrat_assign(int ID,int indent) {
   writeln("return memo[key("+itos(ID-1)+","+backtracking_ptr_for_packrat+itos(ID-1)+")] = result;",ID,indent);
 }
 
+void GeneralizedPackratParser::write_hash_function(int ID,int indent,int base_size) {
+  long long base = 1;
+  for(int i=0;i<base_size;++i) {
+    base *= 10LL;
+  }
+  writeln("const long long base = " + itos(base) + "; // for hash",ID,indent);
+  writeln("",ID,indent);
+  writeln("namespace std {",ID,indent++);
+  writeln("template <>",ID,indent);
+  writeln("class hash<std::pair<int, int>> {",ID,indent++);
+  writeln("public:",ID,indent);
+  writeln("size_t operator()(const std::pair<int, int>& x) const {",ID,indent++);
+  writeln("return base * x.second + x.first;",ID,indent);
+  writeln("}",ID,--indent);
+  writeln("};",ID,--indent);
+  writeln("}",ID,--indent);
+}
 
 void GeneralizedPackratParser::encode() {
   buffer.clear();
@@ -88,9 +106,15 @@ void GeneralizedPackratParser::encode() {
   writeln("#include<iostream>",first_ID);
   writeln("#include<chrono>",first_ID);
   writeln("#include<deque>",first_ID);
-  writeln("#include<map>",first_ID);
   writeln("#include<cassert>",first_ID);
   writeln("#include<climits>",first_ID);
+  if( packrat ) {
+    if( hash_map ) {
+      writeln("#include<unordered_map>",first_ID);
+    } else {
+      writeln("#include<map>",first_ID);
+    }
+  }
   writeln("#include<algorithm>",first_ID);
   writeln("",first_ID);
   writeln("#define FAIL -1",first_ID);
@@ -103,7 +127,7 @@ void GeneralizedPackratParser::encode() {
 
   if( packrat ) {
     writeln("typedef pair<int,int> key;",first_ID);
-    writeln("map<key,deque<int>> memo;",first_ID);
+
   }
 
   std::vector<Nonterminal*> nonterminals = grammar->getNonterminals();
@@ -111,6 +135,21 @@ void GeneralizedPackratParser::encode() {
   for(int i=0;i<(int)nonterminals.size();++i) {
     encode(nonterminals[i],-1,0);
   }
+
+  if( hash_map ) {
+    int base_size = (int)log10(suffix) + 1;
+    write_hash_function(first_ID,0,base_size);
+  }
+
+  if(packrat) {
+    if( hash_map ) {
+      writeln("unordered_map<key,deque<int>> memo;",first_ID);
+    } else {
+      writeln("map<key,deque<int>> memo;",first_ID);
+    }
+  }
+
+  
 
   last_ID = buffer.size();
   buffer.push_back("");
