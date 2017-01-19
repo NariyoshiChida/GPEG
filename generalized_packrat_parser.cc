@@ -586,6 +586,8 @@ void GeneralizedPackratParser::encode(Sequence *tmp,int ID=-1,int indent=0) {
   for(int i=0;i<(int)sequence.size();++i) { 
     writeln("if(!((int)prev.size()==1&&prev.front()==FAIL)) {",ID,indent), ++indent; // CHECK
     encode(sequence[i],ID,indent);
+    writeln("sort(prev.begin(),prev.end());",ID,indent); // proto type
+    writeln("prev.erase(unique(prev.begin(),prev.end()),prev.end());",ID,indent); // proto type
     --indent, writeln("}",ID,indent); // CHECK
   }
 }
