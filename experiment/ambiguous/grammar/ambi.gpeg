@@ -1,0 +1,4 @@
+# S <- 'b' | S S | S S S
+# S <- 'b' | S ( S | S S )
+S <- 'b' T
+T <- ( S | S S ) T | ''

@@ -1,0 +1,732 @@
+File
+	<- _ 
+	( (PackageDeclaration)? 
+	  (ImportDeclaration)* 
+	  (TypeDeclaration)*  ) _ EOT
+
+_
+	<- (S / BLOCKCOMMENT / LINECOMMENT )*
+	
+__
+	<- !S
+
+S
+	<- [ \n\r\t]
+
+BLOCKCOMMENT
+	<- '/*' (!'*/' .)* '*/'
+
+LINECOMMENT
+	<- '//' (!'\n' .)*
+
+EOL
+	<- ('\r'? '\n' / !.)
+
+EOT <- !.
+
+
+KEYWORD
+	<- ('abstract' !W _) / ('assert' !W _) / ('boolean' !W _) / ('break' !W _) / ('byte' !W _) / ('case' !W _)
+	/ ('catch' !W _) / ('char' !W _) / ('class' !W _) / ('const' !W _) / ('continue' !W _) / ('default' !W _)
+	/ ('double' !W _) / ('do' !W _) / ('else' !W _) / ('enum' !W _) / ('extends' !W _) / ('false' !W _)
+	/ ('final' !W _) / ('finally' !W _) / ('float' !W _) / ('for' !W _) / ('goto' !W _) / ('if' !W _) / ('implements' !W _)
+	/ ('import' !W _) / ('instanceof' !W _) / ('interface' !W _) / ('int' !W _) / ('long' !W _) / ('native' !W _)
+	/ ('new' !W _) / ('null' !W _) / ('package' !W _) / ('private' !W _) / ('protected' !W _) / ('public' !W _)
+	/ ('return' !W _) / ('short' !W _) / ('static' !W _) / ('strictfp' !W _) / ('super' !W _) / ('switch' !W _)
+	/ ('synchronized' !W _) / ('this' !W _) / ('throws' !W _) / ('throw' !W _) / ('transient' !W _)
+	/ ('true' !W _) / ('try' !W _) / ('void' !W _) / ('volatile' !W _) / ('while' !W _)
+
+
+TopLevel
+	<- PackageDeclaration
+	/ ImportDeclaration
+	/ TypeDeclaration
+
+PackageDeclaration
+	<- ( (Annotations)? ('package' !W _) QualifiedName  )  (';' _) 
+
+ImportDeclaration
+	<- ( ('import' !W _) 
+		(('static' !W _)  / '')
+		PackageName ) (';' _)
+
+PackageName
+	<- QualifiedName ( ('.' !'.' _) ('*' !'=' _) )?
+
+
+TypeDeclaration
+	<- ClassDeclaration
+	/ InterfaceDeclaration
+	/  (';' _)
+
+
+Annotations
+	<-  Annotation (Annotation)* 
+
+Annotation
+	<- ('@' _)  QualifiedName ('(' _) (ElementValuePairList)? (')' _)  
+	/ ('@' _)  QualifiedName ('(' _) ElementValue (')' _)  
+	/ ('@' _)  QualifiedName  
+
+ElementValuePairList
+	<-  ElementValuePair ((',' _) ElementValuePair)*
+
+ElementValuePair
+	<-  Identifier ('=' !'=' _) ElementValue  
+
+ElementValue
+	<- ElementValueArrayInitializer
+	/ ConditionalExpression
+	/ Annotation
+
+ElementValueArrayInitializer
+	<- ('{' _) (ElementValueList)?  (',' _)? ('}' _)
+
+ElementValueList
+	<- ElementValue ((',' _) ElementValue)*
+
+
+VariableDeclaration
+	<- (VariableModifiers)? Type InitDeclList
+
+VariableModifier
+	<- Annotation
+	/ ('final' !W _)
+
+VariableModifiers
+	<- VariableModifier (VariableModifier)* 
+
+InitDeclList
+	<- InitDecl ((',' _) InitDecl)* 
+
+InitDecl
+	<- VarName (('=' !'=' _) Initializer)?
+
+VarName
+	<- Identifier ( ('[' _) (ConstantExpression)? (']' _)  )*
+
+Initializer
+	<- Expression
+	/ ArrayInitializer
+
+ArrayInitializer
+	<-  ('{' _) (Initializer ((',' _) Initializer)*)? (',' _)? ('}' _) 
+
+
+
+ClassDeclaration
+	<- (ClassModifiers)? ('class' !W _) Identifier (TypeParameters)? (SuperClass)? (SuperInterfaces)* ClassBody
+	/ (ClassModifiers)? ('enum' !W _) Identifier (SuperInterfaces )* EnumBody
+
+ClassModifiers
+	<- ClassModifier (ClassModifier)* 
+
+ClassModifier
+	<- Annotation
+	/  ('public' !W _)      
+	/  ('protected' !W _)   
+	/  ('private' !W _)     
+	/  ('abstract' !W _)    
+	/  ('final' !W _)       
+	/  ('static' !W _)      
+	/  ('strictfp' !W _)    
+
+SuperClass
+	<- ('extends' !W _) ClassOrInterfaceType
+
+SuperInterfaces
+	<- ('implements' !W _) ClassOrInterfaceTypes  
+
+EnumBody
+	<- ('{' _) ( (EnumeratorList)? (',' _)? (';' _) ( ClassBodyDeclaration)+  ) ('}' _)
+	/ ('{' _) ( (EnumeratorList)? (',' _)? (';' _)?  ) ('}' _)
+
+EnumeratorList
+	<- Enumerator ( (',' _) Enumerator)*
+
+Enumerator
+	<-  (Annotations )? Identifier (( ('(' _) addArgumentExpressionList? (')' _)  ))? ( ClassBody)?  
+
+
+
+ClassBody
+	<- ('{' _)  (ClassBodyDeclaration)*   ('}' _)
+
+ClassBodyDeclaration
+	<- ClassMemberDeclaration
+	/ Block  
+	/ ('static' !W _) Block
+	/ ConstructorDeclaration
+
+ClassMemberDeclaration
+	<- FieldDeclaration
+	/ MethodDeclaration
+	/ ClassDeclaration
+	/ InterfaceDeclaration
+	/ (';' _)
+
+
+InterfaceDeclaration
+	<-  (InterfaceModifiers )? ('interface' !W _) Identifier (TypeParameters)? (ExtendsInterfaces )* InterfaceBody  
+	/  (InterfaceModifiers )? ('@' _) ('interface' !W _) Identifier AnnotationTypeBody  
+
+InterfaceModifier
+	<- Annotation
+	/ ('public' !W _)   
+	/ ('protected' !W _)
+	/ ('private' !W _)  
+	/ ('abstract' !W _) 
+	/ ('static' !W _)   
+	/ ('strictfp' !W _) 
+	
+InterfaceModifiers
+	<-  InterfaceModifier ( InterfaceModifier)*  
+
+ExtendsInterfaces
+	<-  ('extends' !W _) ClassOrInterfaceTypes  
+
+InterfaceBody
+	<- ('{' _) (InterfaceMemberDeclaration )* ('}' _)
+
+InterfaceMemberDeclaration
+	<- ConstantDeclaration
+	/ InterfaceMethodDeclaration
+	/ ClassDeclaration
+	/ InterfaceDeclaration
+	/ (';' _)
+
+AnnotationTypeBody
+	<- ('{' _) (AnnotationTypeMemberDeclaration )* ('}' _)
+
+AnnotationTypeMemberDeclaration
+	<- AnnotationTypeElementDeclaration
+	/ ConstantDeclaration
+	/ ClassDeclaration
+	/ InterfaceDeclaration
+	/ (';' _)
+
+AnnotationTypeElementDeclaration
+	<- (AnnotationTypeElementModifiers )? Type Identifier ('(' _) (')' _) (AnnotationTypeElementDefaultValue)? (';' _)  
+
+AnnotationTypeElementModifier
+	<- Annotation
+	/ ('public' !W _)   
+	/ ('abstract' !W _) 
+
+AnnotationTypeElementModifiers
+	<- AnnotationTypeElementModifier ( AnnotationTypeElementModifier)* 
+
+AnnotationTypeElementDefaultValue
+	<- ('default' !W _) ElementValue
+
+
+FieldDeclaration
+	<- (FieldModifiers)? Type InitDeclList (';' _)
+
+FieldModifiers
+	<- FieldModifier (FieldModifier)*
+
+FieldModifier
+	<- Annotation
+	/  ('public' !W _)   
+	/  ('protected' !W _)
+	/  ('private' !W _)  
+	/  ('final' !W _)    
+	/  ('static' !W _)   
+	/  ('transient' !W _)
+	/  ('volatile' !W _) 
+
+ConstantDeclaration
+	<- (ConstantModifiers)? Type InitDeclList (';' _)
+
+ConstantModifiers
+	<- ConstantModifier (ConstantModifier)*
+
+ConstantModifier
+	<- Annotation
+	/  ('public' !W _)      
+	/  ('protected' !W _)   
+	/  ('final' !W _)       
+	/  ('static' !W _)      
+
+
+MethodDeclaration
+	<-  (MethodModifiers)? 
+	    (TypeParameters (Annotations )? )? 
+	     TypeOrVoid Identifier ('(' _) MethodParamList (')' _) (Throws)? (Block / (';' _) )
+
+MethodModifiers
+	<- MethodModifier (MethodModifier)*
+
+MethodModifier
+	<- Annotation
+	/  ('public' !W _)      
+	/  ('protected' !W _)   
+	/  ('private' !W _)     
+	/  ('final' !W _)       
+	/  ('static' !W _)      
+	/  ('synchronized' !W _)
+	/  ('transient' !W _)   
+	/  ('volatile' !W _)    
+
+
+InterfaceMethodDeclaration
+	<- (InterfaceMethodModifiers)? 
+	   (TypeParameters (Annotations )? )? 
+	    TypeOrVoid Identifier ('(' _) MethodParamList (')' _) (Throws)? (Block / (';' _) ) 
+
+InterfaceMethodModifier
+	<- Annotation
+	/  ('public' !W _)      
+	/  ('protected' !W _)   
+	/  ('default' !W _)     
+	/  ('static' !W _)      
+
+InterfaceMethodModifiers
+	<- InterfaceMethodModifier (InterfaceMethodModifier)* 
+
+MethodParamList
+	<- (MethodParam (',' _) )* VarParam  
+	/ ( MethodParam ((',' _) MethodParam)* )?  
+
+MethodParam
+	<- (VariableModifiers)? Type VarName 
+
+VarParam
+	<- (VariableModifiers)? Type ('...' _) VarName
+
+Throws
+	<- ('throws' !W _) ClassOrInterfaceTypes
+
+
+ConstructorDeclaration
+	<- (ConstructorModifiers)? ReferenceType ('(' _) MethodParamList (')' _) (Throws)? ConstructorBody
+
+ConstructorModifiers
+	<- ConstructorModifier ( ConstructorModifier)*
+
+ConstructorModifier
+	<- Annotation
+	/  ('public' !W _)      
+	/  ('protected' !W _)   
+	/  ('private' !W _)     
+
+ConstructorBody
+	<-  ('{' _) (ExplicitConstructorInvocation )? ((Statement / LocalDeclaration) )* ('}' _)  
+
+ExplicitConstructorInvocation
+	<- ( (TypeArguments)? ( This  ('(' _) addArgumentExpressionList? (')' _)  )  ) (';' _)
+	/ ( (TypeArguments)? ( Super ('(' _) addArgumentExpressionList? (')' _)  )  ) (';' _)
+	/ ( PostfixExpression ('.' !'.' _) (TypeArguments )? Super ( ('(' _) addArgumentExpressionList? (')' _)  )   ) (';' _)
+
+
+
+
+Type
+	<- ReferenceType
+	/ PrimitiveType
+
+PrimitiveType
+	<-  Annotations UnannoPrimitiveType  
+	/ UnannoPrimitiveType 
+
+UnannoPrimitiveType
+	<- NumericType
+	/ BooleanType
+
+NumericType
+	<- IntegralType 
+	/ FloatingPointType
+
+IntegralType
+	<- ('byte' !W _)    
+	/  ('char' !W _)    
+	/  ('short' !W _)   
+	/  ('int' !W _)     
+	/  ('long' !W _)    
+
+FloatingPointType
+        <- ('float' !W _)  
+        /  ('double' !W _) 
+
+BooleanType
+        <- ('boolean' !W _)
+
+ReferenceType
+	<- ArrayType
+	/ ClassOrInterfaceType
+	/ TypeVariable
+
+ArrayType
+	<- (PrimitiveType / ClassOrInterfaceType / TypeVariable) 
+	  ( (Annotations)? ('[' _) (']' _)  )+
+
+ClassOrInterfaceType
+	<- ClassType 
+	/ InterfaceType
+
+	
+ClassType
+	<- QualifiedName ( TypeArguments  )?
+
+InterfaceType
+	<- ClassType
+
+TypeVariable
+	<- Annotations Identifier  
+	/ Identifier
+
+TypeParameter
+	<- Annotations UnannoTypeParameter
+	/ UnannoTypeParameter
+
+UnannoTypeParameter
+	<- Identifier ( ('extends' !W _) ClassOrInterfaceType ( ('&' ![&=] _) InterfaceType)*  )?
+
+
+TypeParameters
+	<- ('<' ![=] _) TypeParameter ((',' _) TypeParameter)* ('>' ![=] _)
+
+TypeArgument
+	<- ReferenceType
+	/ ( (Annotations)? ('?' _)  ) (( ('extends' !W _)  / ('super' !W _) ) ReferenceType )?
+
+TypeArguments
+	<- ( ('<' ![=] _) (TypeArgument ((',' _) TypeArgument )*)? ('>' ![=] _)  )
+
+
+
+Void
+	<- ('void' !W _)
+
+
+TypeOrVoid
+	<- Type 
+         / Void
+
+NonArrayType
+	<- ClassOrInterfaceType 
+	/ PrimitiveType
+
+ClassOrInterfaceTypes
+	<- ClassOrInterfaceType ((',' _) ClassOrInterfaceType)*  
+
+Block
+	<- ('{' _) ((Statement / LocalDeclaration))* ('}' _) 
+
+LocalDeclaration
+	<- VariableDeclaration (';' _)
+	/ ClassDeclaration
+
+Statement
+	<- Block
+	/ ('assert' !W _) Expression ((':' ![>:] _) Expression )? (';' _)  
+	/ ('if' !W _)   ('(' _) Expression (')' _) Statement ( ('else' !W _) Statement)? 
+	/ ('switch' !W _) ('(' _) Expression (')' _) Statement
+	/ ('while' !W _)  ('(' _) Expression (')' _) Statement
+	/ ('do' !W _) Statement ('while' !W _) ('(' _) Expression (')' _) (';' _)
+	/ ('for' !W _) ('(' _) (Expressions)?  (';' _) (Expression)? (';' _) (Expressions)? (')' _) Statement
+	/ ('for' !W _) ('(' _) VariableDeclaration (';' _) (Expression)? (';' _) (Expressions)? (')' _) Statement 
+	/ ('for' !W _) ('(' _) (VariableModifiers)? Type Identifier (':' ![>:] _) Expression (')' _) Statement
+	/ ('goto' !W _) Identifier (';' _)
+	/ ('continue' !W _) (Identifier)? (';' _)
+	/ ('break' !W _) (Identifier)? (';' _)
+	/ ('return' !W _) (Expression)? (';' _)
+	/ ('try' !W _) ResourceStatement Block ( CatchBlock)* ( ( ('finally' !W _) Block  ))?
+	/ ('try' !W _) Block (CatchBlock )* ('finally' !W _) Block
+	/ ('try' !W _) Block (CatchBlock)+
+	/ ('throw' !W _) Expression (';' _)
+	/ ('synchronized' !W _) ('(' _) Expression (')' _) Block
+	/ ('case' !W _) ConstantExpression (':' ![>:] _) (!('case' !W _) !('default' !W _) Statement)*
+	/ ('default' !W _) (':' ![>:] _) (!('case' !W _) Statement)*
+	/ Identifier (':' ![>:] _)
+	/ Expression (';' _)
+	/ (';' _)
+
+ResourceStatement
+	<- ('(' _) Resource ( (';' _) Resource)* (';' _)? (')' _)
+
+Resource
+	<- (VariableModifiers)? Type Identifier ('=' !'=' _) Expression  
+
+CatchBlock
+	<- ('catch' !W _) ('(' _) CatchParameter (')' _) Block
+
+CatchParameter
+	<- (VariableModifiers)? ClassOrInterfaceType Identifier ( ('|' ![|=] _) Identifier )*
+
+
+
+
+
+Expression
+	<- LambdaExpression
+	/ AssignmentExpression
+
+
+Expressions
+	<- Expression ( (',' _) Expression)*
+
+AssignmentExpression
+	<- UnaryExpression addAssignmentOperator Expression
+	/ ConditionalExpression
+
+addAssignmentOperator
+	<- ('=' !'=' _)
+	/ ('*=' _)
+	/ ('/=' _)
+	/ ('%=' _)
+	/ ('+=' _)
+	/ ('-=' _)
+	/ ('<<=' _)
+	/ ('>>=' _)
+	/ ('>>>=' _)
+	/ ('&=' _)  
+	/ ('^=' _)  
+	/ ('|=' _)  
+
+ConstantExpression
+	<- ConditionalExpression
+
+ConditionalExpression
+	<- LogicalOrExpression ( ('?' _)  Expression (':' ![>:] _) LogicalOrExpression  )*
+
+LogicalOrExpression
+	<- LogicalAndExpression ( ('||' _) LogicalAndExpression  )*
+
+LogicalAndExpression
+	<- InclusiveOrExpression ( ('&&' _) InclusiveOrExpression  )*
+
+InclusiveOrExpression
+	<- ExclusiveOrExpression ( ('|' ![|=] _) ExclusiveOrExpression  )*
+
+ExclusiveOrExpression
+	<- AndExpression ( ('^' ![=] _) AndExpression  )*
+
+AndExpression
+	<- EqualityExpression ( ('&' ![&=] _) EqualityExpression  )*
+
+EqualityExpression
+	<- RelationalExpression ( ( ('==' _)  / ('!=' _)  ) RelationalExpression )*
+
+relationalOperator
+	<- ('<=' _)
+	/ ('>=' _)
+	/ ('<' ![=] _)
+	/ ('>' ![=] _)
+
+RelationalExpression
+	<- ShiftExpression ( ( relationalOperator ShiftExpression / ('instanceof' !W _) ReferenceType  ) )*
+
+ShiftExpression
+	<- AdditiveExpression ( ( ('<<' !'=' _)  / ('>>' ![=>] _)  / ('>>>' !'=' _)  ) AdditiveExpression )*
+
+AdditiveExpression
+	<- MultiplicativeExpression ( ( ('+' ![+=] _)  / ('-' !('-' / [=>]) _)  ) MultiplicativeExpression )*
+
+MultiplicativeExpression
+	<- CastNewExpression ( ( ('*' !'=' _)  / ('/' !'=' _)  / ('%' ![=>] _)  ) CastNewExpression )*
+
+CastNewExpression
+	<- ('(' _) Type (')' _) CastNewExpression
+	/ UnaryExpression
+
+UnaryExpression
+	<- PostfixExpression
+	/ ('++' _) UnaryExpression  
+	/ ('--' _) UnaryExpression  
+	/ ('+' ![+=] _)  CastNewExpression  
+	/ ('-' !('-' / [=>]) _)  CastNewExpression  
+	/  ('~' _)  CastNewExpression  
+	/ ('!' !'=' _)  CastNewExpression  
+
+PostfixExpression
+	<- PrimaryExpression ( (addMethodCall / addInstanceCreation / addIndex / addField / addMethodReference / addInc / addDec ) )*
+
+addMethodCall
+	<- ('.' !'.' _) (TypeArguments)? Identifier ('(' _) addArgumentExpressionList? (')' _) 
+
+addInstanceCreation
+	<- ('.' !'.' _) ('new' !W _) (TypeArguments)? (Annotations )? ClassOrInterfaceType ( ('(' _) addArgumentExpressionList? (')' _)  ) (ClassBody)?
+
+addArgumentExpressionList
+	<- (Expression ((',' _) Expression)*)
+
+addIndex
+	<- ('[' _) Expression (']' _)
+
+addField
+	<- ('.' !'.' _) Identifier !'('
+
+addMethodReference
+	<- ('::' _) (TypeArguments)? Identifier
+
+addInc
+	<- ('++' _)
+
+addDec
+	<- ('--' _)
+
+PrimaryExpression
+	<- Constant
+	/ This
+	/ Super
+	/ ('(' _) Expression (')' _)
+	/ ClassLiteral
+	/ QualifiedName ('.' !'.' _) ('this' !W _) 
+	/ QualifiedName ('.' !'.' _) ('super' !W _)
+	/ MethodInvocationExpression
+	/ InstanceCreationExpression
+	/ ArrayCreationExpression
+	/ MethodReference
+	/ Identifier
+
+ClassLiteral
+	<- TypeOrVoid  ('.' !'.' _) ('class' !W _)
+
+This
+	<- ('this' !W _)
+
+Super
+	<- ('super' !W _)
+
+MethodInvocationExpression
+	<- Identifier ('(' _) addArgumentExpressionList? (')' _)
+
+InstanceCreationExpression
+	<- ('new' !W _) (TypeArguments)? (Annotations )? ClassOrInterfaceType ('(' _) addArgumentExpressionList? (')' _)  (ClassBody)? 
+
+ArrayCreationExpression
+	<-  ('new' !W _) (Annotations )? (NonArrayType ( (Annotations )? ('[' _) Expression (']' _)  )+ ( (Annotations )? ('[' _)  (']' _)  )* )
+	/   ('new' !W _) (Annotations )? (NonArrayType ( (Annotations )? ('[' _) (']' _)  )+ ) ArrayInitializer
+
+MethodReference
+	<-  ReferenceType ('::' _) (TypeArguments)? (Identifier / ('new' !W _)  )  
+
+
+LambdaExpression
+	<-  LambdaParameters ('->' _) LambdaBody  
+
+LambdaParameters
+	<-  ( ( Identifier
+		/ ( ('(' _) addArgumentExpressionList? (')' _)  )
+		/ ('(' _) InferredFormalParameterList (')' _)
+		)  )
+
+InferredFormalParameterList
+	<-  Identifier ( (',' _) Identifier)*  
+
+LambdaBody
+	<- Expression
+	/ Block
+
+
+
+
+Identifier
+	<- NAME   _
+
+QualifiedName
+	<- Identifier ( ('.' !'.' _) Identifier  )*
+
+W
+	<- [a-zA-Z0-9_$]
+
+NAME
+	<- !DIGIT !(KEYWORD !W) W+
+
+
+Literal
+	<- FloatingPointLiteral 
+	/ IntegerLiteral 
+	/ BooleanLiteral 
+	/ CharacterLiteral 
+	/ StringLiteral 
+	/ NullLiteral
+
+Constant
+	<- Literal
+
+NullLiteral
+	<-  ('null' !W _)  
+
+BooleanLiteral
+	<- ('true' !W _)  
+	/  ('false' !W _) 
+
+IntegerLiteral
+	<- ( DECIMAL / HEXADECIMAL / BINARY / OCTAL ) (INT_SUFFIX  / FLOAT_SUFFIX  / '' ) _
+
+DECIMAL
+	<- '0' ![bBxX0-9_]
+	/ [1-9] ('_'* DIGIT)*
+
+HEXADECIMAL
+	<- '0' [xX] HEX ('_'* HEX)*
+
+BINARY
+	<- '0' [bB] [01] ('_'* [01])*
+
+OCTAL
+	<- '0' ('_'* [0-7])*
+
+DIGIT
+	<- [0-9]
+
+HEX
+	<- [a-fA-F0-9]
+
+INT_SUFFIX
+	<- [lL]
+
+FloatingPointLiteral
+	<- FLOAT FLOAT_SUFFIX? _
+	/ DECIMAL  FLOAT_SUFFIX _
+
+FLOAT
+	<- FRACTION EXPONENT?
+	/ DIGIT+ EXPONENT
+
+FLOAT_SUFFIX
+	<- [fFdD]
+
+FRACTION
+	<- !'_' ('_'* DIGIT)* '.' DIGIT ('_'* DIGIT)*
+	/ DIGIT ('_'* DIGIT)* '.'
+
+EXPONENT
+	<- [eE] [+\-]? DIGIT ('_'* DIGIT)*
+
+StringLiteral
+	<- '"' STRING_CONTENT* '"' _
+
+CharacterLiteral
+	<- '\'' CHAR_CONTENT* '\'' _
+
+STRING_CONTENT
+	<- ESCAPE
+	/ ![\"\n\\] .
+
+CHAR_CONTENT
+	<- ESCAPE
+	/ !['\n\\] .
+
+ESCAPE
+	<- SIMPLE_ESCAPE
+	/ OCTAL_ESCAPE
+	/ HEX_ESCAPE
+
+SIMPLE_ESCAPE
+	<- '\\' ['\"\\bfnrt]
+
+OCTAL_ESCAPE
+	<- '\\' [0-3] [0-7] [0-7]
+	/ '\\' [0-7] [0-7]
+	/ '\\' [0-7]
+
+HEX_ESCAPE
+	<- '\\' 'u'+ HEX4
+
+HEX4
+	<- HEX HEX HEX HEX
+
