@@ -169,15 +169,14 @@ void GeneralizedPackratParser::encode() {
   }
   writeln("sort(result.begin(),result.end());",last_ID,1);
   writeln("result.erase(unique(result.begin(),result.end()),result.end());",last_ID,1);
-  writeln("if(!( result.size() == 1 && result[0] == FAIL )) {",last_ID,1);
-  writeln("puts(\"success\");",last_ID,2);
-  writeln("for(int i=0;i<(int)result.size();++i) {",last_ID,2);
-  writeln("if(result[i] == -1) continue;",last_ID,3);
+  writeln("for(int i=0;i<(int)result.size();++i) {",last_ID,1);
+  writeln("if(result[i] == -1) {",last_ID,2);
+  writeln("cout << \"fail\" << endl;",last_ID,3);
+  writeln("} else {",last_ID,2);
   writeln("cout << \"consumed :: [\" << result[i] << \"/\" << m << \"]\" << endl;",last_ID,3);
   writeln("}",last_ID,2);
-  writeln("} else {",last_ID,1);
-  writeln("puts(\"fail\");",last_ID,2);
   writeln("}",last_ID,1);
+
   if( matching_time ) {
     writeln("cout << \"matching time :: \" << chrono::duration_cast<chrono::milliseconds>(ed-st).count() << \"msec\" << endl;",last_ID,1);
   }
@@ -513,13 +512,18 @@ void GeneralizedPackratParser::encode(And *cur,int ID=-1,int indent=0) {
   writeln("for(int "+index+"=0;"+index+"<(int)prev.size();++"+index+") {",ID,indent), ++indent;
   writeln(ptr_name + " = prev["+index+"];",ID,indent);
   writeln("tmp = " + name_of_and + "();",ID,indent);
-  writeln("if(!tmp.empty()&&tmp.front()==FAIL) {",ID,indent), ++indent;
+
+
+  writeln("if(!tmp.empty() && tmp[(int)tmp.size()-1] != FAIL) {",ID,indent), ++indent;
   writeln("if(!(!"+next_prev+".empty()&&"+next_prev+".front()==FAIL)) {",ID,indent), ++indent;
-  writeln(next_prev+".push_front(FAIL);",ID,indent);
-  --indent, writeln("}",ID,indent); // if(!(!
-  --indent, writeln("} else {",ID,indent), ++indent;//if(!tmp.empty()
   writeln(next_prev + ".push_back(prev["+index+"]);",ID,indent);
-  --indent, writeln("}",ID,indent); // } else {
+  --indent, writeln("}",ID,indent);
+  --indent, writeln("}",ID,indent);
+
+  writeln("if(!tmp.empty() && tmp[0] == FAIL) {",ID,indent), ++indent;
+  writeln(next_prev+".push_front(FAIL);",ID,indent);
+  --indent,writeln("}",ID,indent);
+
   --indent, writeln("}",ID,indent); // for int index=0;
   writeln("prev = " + next_prev+";",ID,indent);
 
@@ -568,13 +572,18 @@ void GeneralizedPackratParser::encode(Not *cur,int ID=-1,int indent=0) {
   writeln("for(int "+index+"=0;"+index+"<(int)prev.size();++"+index+") {",ID,indent), ++indent;
   writeln(ptr_name + " = prev["+index+"];",ID,indent);
   writeln("tmp = " + name_of_not + "();",ID,indent);
-  writeln("if(!tmp.empty()&&tmp.front()==FAIL) {",ID,indent), ++indent;
-  writeln(next_prev + ".push_back(prev["+index+"]);",ID,indent);
-  --indent, writeln("} else {",ID,indent), ++indent;//if(!tmp.empty()
+  
+  writeln("if(!tmp.empty() && tmp[(int)tmp.size()-1] != FAIL) {",ID,indent), ++indent;
   writeln("if(!(!"+next_prev+".empty()&&"+next_prev+".front()==FAIL)) {",ID,indent), ++indent;
   writeln(next_prev+".push_front(FAIL);",ID,indent);
-  --indent, writeln("}",ID,indent); // if(!(!
-  --indent, writeln("}",ID,indent); // } else {
+  --indent, writeln("}",ID,indent);
+  --indent, writeln("}",ID,indent);
+
+  writeln("if(!tmp.empty() && tmp[0] == FAIL) {",ID,indent), ++indent;
+  writeln(next_prev + ".push_back(prev["+index+"]);",ID,indent);
+  --indent,writeln("}",ID,indent);
+
+
   --indent, writeln("}",ID,indent); // for int index=0;
   writeln("prev = " + next_prev+";",ID,indent);
   
