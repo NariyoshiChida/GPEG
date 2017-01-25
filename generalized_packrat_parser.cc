@@ -386,7 +386,10 @@ void GeneralizedPackratParser::encode(Alternation *tmp,int ID=-1,int indent=0) {
   std::string index2 = "i" + itos(suffix++);
   writeln("for(int "+index2+"=0;"+index2+"<(int)prev.size();++"+index2+") {",ID,indent), ++indent;
 
+
+
   for(int i=0;i<(int)alternates.size();++i) {
+
 
     writeln(ptr_name + " = prev["+index2+"];",ID,indent);
 
@@ -425,21 +428,27 @@ void GeneralizedPackratParser::encode(Alternation *tmp,int ID=-1,int indent=0) {
     writeln(tmp_prev+"="+name_of_alternate+"();",ID,indent);
     std::string index = "i" + itos(suffix++);
     writeln("for(int "+index+"=0;"+index+"<(int)"+tmp_prev+".size();++"+index+") {",ID,indent), ++indent;
-    writeln("if( "+tmp_prev+"["+index+"] == FAIL ) {",ID,indent), ++indent; 
-    writeln("if(!(!"+next_prev+".empty()&&"+next_prev+".front()==FAIL)) {",ID,indent), ++indent;
-    writeln(next_prev+".push_front(FAIL);",ID,indent);
-    --indent, writeln("}",ID,indent); // if(!(!next_prev
-    --indent, writeln("} else {",ID,indent), ++indent; // if ( tmp_prev[index] == FAIL
+    //writeln("if( "+tmp_prev+"["+index+"] == FAIL ) {",ID,indent), ++indent; 
+    //writeln("if(!(!"+next_prev+".empty()&&"+next_prev+".front()==FAIL)) {",ID,indent), ++indent;
+    //writeln(next_prev+".push_front(FAIL);",ID,indent);
+    //--indent, writeln("}",ID,indent); // if(!(!next_prev
+    //--indent, writeln("} else {",ID,indent), ++indent; // if ( tmp_prev[index] == FAIL
+    writeln("if( " + tmp_prev + "[" + index + "] != FAIL ) {",ID,indent), ++indent; // after
     writeln(next_prev+".push_back("+tmp_prev+"["+index+"]);",ID,indent);
     --indent, writeln("}",ID,indent); // } else {
     --indent, writeln("}",ID,indent); // for
 
   }
 
+
   --indent, writeln("}",ID,indent); // for(int index2=0;index2<(int)prev.size();++index2) {
 
-  writeln("prev = " + next_prev + ";",ID,indent);
+  writeln("if( " + next_prev + ".empty() ) {",ID,indent), ++indent; //after
+  writeln(next_prev + ".push_back(FAIL);",ID,indent);//after
+  --indent, writeln("}",ID,indent);//after
 
+  writeln("prev = " + next_prev + ";",ID,indent);
+ 
 }
 
 void GeneralizedPackratParser::encode(Char *tmp,int ID=-1,int indent=0) { // MODIFIED
