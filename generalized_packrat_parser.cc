@@ -527,9 +527,8 @@ void GeneralizedPackratParser::encode(And *cur,int ID=-1,int indent=0) {
   writeln("if(!(!"+next_prev+".empty()&&"+next_prev+".front()==FAIL)) {",ID,indent), ++indent;
   writeln(next_prev + ".push_back(prev["+index+"]);",ID,indent);
   --indent, writeln("}",ID,indent);
-  --indent, writeln("}",ID,indent);
-
-  writeln("if(!tmp.empty() && tmp[0] == FAIL) {",ID,indent), ++indent;
+  // --indent, writeln("}",ID,indent);
+  --indent, writeln("} else if(!tmp.empty() && tmp[0] == FAIL) {",ID,indent), ++indent;
   writeln(next_prev+".push_front(FAIL);",ID,indent);
   --indent,writeln("}",ID,indent);
 
@@ -586,11 +585,11 @@ void GeneralizedPackratParser::encode(Not *cur,int ID=-1,int indent=0) {
   writeln("if(!(!"+next_prev+".empty()&&"+next_prev+".front()==FAIL)) {",ID,indent), ++indent;
   writeln(next_prev+".push_front(FAIL);",ID,indent);
   --indent, writeln("}",ID,indent);
-  --indent, writeln("}",ID,indent);
-
-  writeln("if(!tmp.empty() && tmp[0] == FAIL) {",ID,indent), ++indent;
+  //--indent, writeln("}",ID,indent);
+  --indent, writeln("} else if(!tmp.empty() && tmp[0] == FAIL) {",ID,indent), ++indent;
   writeln(next_prev + ".push_back(prev["+index+"]);",ID,indent);
   --indent,writeln("}",ID,indent);
+
 
 
   --indent, writeln("}",ID,indent); // for int index=0;
