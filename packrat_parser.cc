@@ -95,7 +95,10 @@ void PackratParser::encode() {
   buffer.clear();
   first_ID = buffer.size();
   buffer.push_back("");
-  writeln("#include<bits/stdc++.h>",first_ID);
+  //writeln("#include<bits/stdc++.h>",first_ID);
+  writeln("#include<iostream>",first_ID);
+  writeln("#include<vector>",first_ID);
+  writeln("#include<chrono>",first_ID);
   writeln("",first_ID);
   writeln("using namespace std;",first_ID);
   writeln("",first_ID);
@@ -377,7 +380,7 @@ void PackratParser::encode(Alternation *tmp,int ID=-1,int indent=0) {
 
 void PackratParser::encode(Char *tmp,int ID=-1,int indent=0) {
   char value = tmp->getValue();
-  if( !( value == '\\' ) && ( isgraph(value) || value == ' ' ) ) {
+  if( !( value == '\\' || value == '\'' ) && ( isgraph(value) || value == ' ' ) ) {
     writeln("if("+ptr_name+"<m&&I["+ptr_name+"]=='"+std::string(1,value)+"') {",ID,indent), ++indent;
   } else {
     writeln("if("+ptr_name+"<m&&I["+ptr_name+"]==(char)"+itos((int)value)+") {",ID,indent), ++indent;
@@ -621,7 +624,7 @@ void PackratParser::encode(Plus *cur,int ID=-1,int indent=0) {
 }
 
 void PackratParser::encode(Any *cur,int ID=-1,int indent=0) {
-  writeln("if("+ptr_name+"<m&&(isgraph((char)I["+ptr_name+"])||(I["+ptr_name+"]==' '))) {//any character",ID,indent), ++indent;
+  writeln("if("+ptr_name+"<m) {//any character",ID,indent), ++indent;
   writeln("++"+ptr_name+";",ID,indent);
   --indent, writeln("} else {",ID,indent), ++indent;
   if( packrat ) {
@@ -642,7 +645,7 @@ void PackratParser::encode(Range *cur,int ID=-1,int indent=0) {
     if( i+2 < (int)cs.size() && cs[i+1] == '-' && cs[i] <= cs[i+2] ) { // incorrect
       for(char c=cs[i];c<=cs[i+2];++c) {
 	if( c != cs[i] ) condition += "||";
-	if( !( c == '\\' ) && ( isgraph(c) || c == ' ' ) ) {
+	if( !( c == '\\' || c == '\'' ) && ( isgraph(c) || c == ' ' ) ) {
 	  condition += ("I["+ptr_name+"]=='"+std::string(1,c)+"'");
 	} else {
 	  condition += ("I["+ptr_name+"]==(char)"+itos((int)c)+"");
@@ -650,7 +653,7 @@ void PackratParser::encode(Range *cur,int ID=-1,int indent=0) {
       }
       i += 2;
     } else {
-      if( !( cs[i] == '\\' ) && ( isgraph(cs[i]) || cs[i] == ' ' ) ) {
+      if( !( cs[i] == '\\' || cs[i] == '\'' ) && ( isgraph(cs[i]) || cs[i] == ' ' ) ) {
 	condition += ("I["+ptr_name+"]=='"+std::string(1,cs[i])+"'");
       } else {
 	condition += ("I["+ptr_name+"]==(char)"+itos((int)cs[i])+"");
